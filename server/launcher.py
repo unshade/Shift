@@ -1,5 +1,4 @@
 import multiprocessing
-import time
 import os
 
 def start_flask_server():
@@ -7,9 +6,7 @@ def start_flask_server():
 
 def launch_servers():
     flask_process = multiprocessing.Process(target=start_flask_server)
-
     flask_process.start()
-
     flask_process.join()
 
 if __name__ == '__main__':

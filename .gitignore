@@ -1,1 +1,3 @@
 /resources/
+/server/.venv/
+/server/http/resources/
