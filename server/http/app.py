@@ -5,7 +5,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-resources_dir = os.path.join(os.getcwd(), 'resources')
+resources_dir = os.path.join(os.getcwd(), 'resources/http')
 if not os.path.exists(resources_dir):
     os.makedirs(resources_dir)
 
