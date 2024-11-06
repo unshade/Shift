@@ -1,0 +1,120 @@
+FROM ubuntu:22.04
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set environment variables
+ENV SDK_VERSION="commandlinetools-linux-9477386_latest.zip" \
+    ANDROID_HOME="/opt/android-sdk" \
+    ANDROID_SDK_ROOT="/opt/android-sdk" \
+    PATH="$PATH:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:/opt/android-sdk/emulator" \
+    DISPLAY=:1 \
+    RESOLUTION=1280x800
+
+# Install required packages including X11, VNC, and noVNC dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    unzip \
+    openjdk-11-jdk \
+    git \
+    python3 \
+    python3-pip \
+    python3-numpy \
+    curl \
+    adb \
+    libqt5webkit5-dev \
+    libgconf-2-4 \
+    libnss3-dev \
+    libxkbcommon-x11-0 \
+    libpulse0 \
+    libasound2 \
+    x11-xserver-utils \
+    libxdamage1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxi6 \
+    libxtst6 \
+    libegl1 \
+    zlib1g-dev \
+    libgl1 \
+    pulseaudio \
+    socat \
+    qemu-kvm \
+    ca-certificates \
+    gnupg \
+    xvfb \
+    x11vnc \
+    xterm \
+    fluxbox \
+    novnc \
+    websockify \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js 18.x
+RUN mkdir -p /etc/apt/keyrings && \
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_18.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
+    apt-get update && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Android SDK
+RUN mkdir -p ${ANDROID_HOME}/cmdline-tools && \
+    cd ${ANDROID_HOME}/cmdline-tools && \
+    wget -q https://dl.google.com/android/repository/${SDK_VERSION} && \
+    unzip -q ${SDK_VERSION} && \
+    mv cmdline-tools latest && \
+    rm ${SDK_VERSION}
+
+# Accept licenses before installing SDK packages
+RUN mkdir -p ${ANDROID_HOME}/licenses && \
+    echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > ${ANDROID_HOME}/licenses/android-sdk-license && \
+    echo "84831b9409646a918e30573bab4c9c91346d8abd" > ${ANDROID_HOME}/licenses/android-sdk-preview-license
+
+# Install Android SDK packages
+RUN sdkmanager --update && \
+    sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.0" \
+    "system-images;android-33;google_apis;x86_64" "emulator"
+
+# Fix missing emulator
+#RUN sdkmanager --install "system-images;android-29;google_apis;x86" &&     echo "no" | avdmanager create avd -n test_device -k "system-images;android-29;google_apis;x86" -d pixel
+
+# Create AVD
+RUN echo "no" | avdmanager create avd \
+    --name "test_device" \
+    --package "system-images;android-33;google_apis;x86_64" \
+    --device "pixel_2"
+
+# Install Appium and UiAutomator2 driver
+RUN npm install -g appium@2.0.0 && \
+    appium driver install uiautomator2
+
+# Create a non-root user
+RUN useradd -m -d /home/appium -s /bin/bash appium && \
+    usermod -aG sudo appium && \
+    echo 'appium ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+# Set VNC password
+RUN mkdir -p /home/appium/.vnc && \
+    x11vnc -storepasswd android /home/appium/.vnc/passwd
+
+# Set up noVNC
+RUN ln -s /usr/share/novnc/vnc.html /usr/share/novnc/index.html
+
+# Set working directory
+WORKDIR /home/appium
+
+# Copy startup script
+COPY start-services.sh /home/appium/
+RUN chmod +x /home/appium/start-services.sh && \
+    chown -R appium:appium /home/appium && \
+    chown -R appium:appium /home/appium/.vnc && \
+    chown -R appium:appium ${ANDROID_HOME}
+RUN chmod 777 /dev/kvm
+
+USER appium
+
+# Expose ports for Appium, VNC, and noVNC
+EXPOSE 4723 5900 6080 8080
+
+CMD ["/home/appium/start-services.sh"]
