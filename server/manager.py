@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 
 import multiprocessing
-import os
 import shutil
+from services.http.app import run_http
 
 from pycli import CLI
 
-cli = CLI(prog="app", version="v1.0.0")
+cli = CLI(prog="manager", version="v1.0.0")
 
 @cli.command
 def run_servers(app_name):
-    """Launch protocols listeners for a specific app"""
-    flask_process = multiprocessing.Process(target=start_http_server)
+    """Launch services listeners for a specific app"""
+    flask_process = multiprocessing.Process(target=run_http, args=(app_name,))
     flask_process.start()
     flask_process.join()
 
@@ -21,8 +21,6 @@ def clear_all():
     shutil.rmtree('./resources')
     return "Cleared every datas"
 
-def start_http_server():
-    os.system("python http/app.py")
-
 if __name__ == '__main__':
+    # Create directory for storing captured packets
     print(cli.run())

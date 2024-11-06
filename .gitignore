@@ -1,4 +1,4 @@
 /resources/
 /server/.venv/
-/server/http/resources/
+/server/services/http/resources/
 /server/resources/

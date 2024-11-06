@@ -2,11 +2,7 @@ from scapy.all import *
 from scapy.layers.http import HTTPRequest
 from scapy.layers.inet import TCP, IP
 
-# Create directory for storing captured packets
-resources_dir = os.path.join(os.getcwd(), 'resources/http')
-if not os.path.exists(resources_dir):
-    os.makedirs(resources_dir)
-
+path = ''
 
 def decode_headers(headers):
     decoded_headers = {}
@@ -25,7 +21,7 @@ def packet_callback(pak: Packet):
     if pak.haslayer(HTTPRequest):
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
         file_name = f"packet_{timestamp}.json"
-        file_path = os.path.join(resources_dir, file_name)
+        file_path = os.path.join(path, file_name)
 
         http_layer = pak[HTTPRequest]
         packet_data = {
@@ -55,6 +51,14 @@ def start_capture():
     # print("Starting packet capture... Press Ctrl+C to stop.")
     sniff(filter="tcp port 80", prn=packet_callback, store=0)
 
-
-if __name__ == '__main__':
-    start_capture()
+def run_http(app_name):
+    # Create directory for storing captured packets
+    resources_dir = os.path.join(os.getcwd(), 'resources/http')
+    if not os.path.exists(resources_dir):
+        os.makedirs(resources_dir)
+    app_path = resources_dir + '/' + app_name
+    global path
+    path = app_path
+    if not os.path.exists(app_path):
+        os.makedirs(app_path)
+        start_capture()
