@@ -1,5 +1,5 @@
 from scapy.all import *
-from scapy.layers.http import HTTP
+from scapy.layers.http import HTTPRequest
 from scapy.layers.inet import TCP, IP
 
 # Create directory for storing captured packets
@@ -8,21 +8,34 @@ if not os.path.exists(resources_dir):
     os.makedirs(resources_dir)
 
 
-def packet_callback(pak):
-    if pak.haslayer(HTTP):
+def decode_headers(headers):
+    decoded_headers = {}
+    for k, v in headers.items():
+        if isinstance(k, bytes):
+            k = k.decode()
+        if isinstance(v, bytes):
+            v = v.decode()
+        elif isinstance(v, dict):
+            v = decode_headers(v)
+        decoded_headers[k] = v
+    return decoded_headers
+
+
+def packet_callback(pak: Packet):
+    if pak.haslayer(HTTPRequest):
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
         file_name = f"packet_{timestamp}.json"
         file_path = os.path.join(resources_dir, file_name)
 
-        print(pak)
+        http_layer = pak[HTTPRequest]
         packet_data = {
             'source_ip': pak[IP].src,
             'destination_ip': pak[IP].dst,
             'source_port': pak[TCP].sport,
             'destination_port': pak[TCP].dport,
-            #'method': pak[HTTP].Method.decode() if pak[HTTP].Method else None,
-            #'path': pak[HTTP].Path.decode() if pak[HTTP].Path else None,
-            'headers': dict(pak[HTTP].fields),
+            'method': http_layer.Method.decode(),
+            'path': http_layer.Path.decode(),
+            'headers': decode_headers(http_layer.fields),
         }
 
         # Try to decode the payload if it exists
@@ -35,11 +48,11 @@ def packet_callback(pak):
         with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(packet_data, f, ensure_ascii=False, indent=4)
 
-        print(f"Captured HTTP packet: {file_name}")
+        # print(f"Captured HTTP packet: {file_name}")
 
 
 def start_capture():
-    print("Starting packet capture... Press Ctrl+C to stop.")
+    # print("Starting packet capture... Press Ctrl+C to stop.")
     sniff(filter="tcp port 80", prn=packet_callback, store=0)
 
 
