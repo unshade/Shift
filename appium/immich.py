@@ -8,15 +8,16 @@ from selenium.webdriver.common.actions import interaction
 from selenium.webdriver.common.actions.action_builder import ActionBuilder
 from selenium.webdriver.common.actions.pointer_input import PointerInput
 
+app_path = "appium/immich.apk"
 options = AppiumOptions()
 options.load_capabilities({
 	"platformName": "Android",
 	"appium:options": {
         "automationName": "UiAutomator2", 
-        "platformVersion": "15.0", 
-        "app": "/Users/maxence/Downloads/immich.apk", 
+        "platformVersion": "10.0", 
+        "app": app_path, 
         "deviceName": "Android Emulator", 
-        "noReset": True
+        "noReset": False
     },
 	"appium:ensureWebviewsHavePages": True,
 	"appium:nativeWebScreenshot": True,
