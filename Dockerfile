@@ -101,6 +101,8 @@ RUN mkdir -p /home/appium/.vnc && \
 # Set up noVNC
 RUN ln -s /usr/share/novnc/vnc.html /usr/share/novnc/index.html
 
+COPY appium/* /home/appium/
+
 # Set working directory
 WORKDIR /home/appium
 

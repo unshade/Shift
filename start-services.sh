@@ -28,9 +28,13 @@ adb push fastdroid-vnc /data/
 adb shell chmod 755 /data/fastdroid-vnc
 adb shell /data/fastdroid-vnc
 
+sh setup.sh
+
 # Start Appium server
 echo "Starting Appium server..."
 appium --allow-insecure chromedriver_autodownload &
+
+python3 immich.py
 
 # Keep container running
 tail -f /dev/null
