@@ -1,11 +1,11 @@
-import os
-import json
-from datetime import datetime
 from scapy.all import *
 from scapy.layers.http import HTTPRequest, HTTPResponse
 from scapy.layers.inet import TCP, IP
+from os import listdir
+from os.path import isfile, join
 
 path = ''
+diff_path = None
 
 def decode_headers(headers):
     decoded_headers = {}
@@ -22,7 +22,8 @@ def decode_headers(headers):
 def save_packet(request_data, response_data):
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
     file_name = f"packet_{timestamp}.json"
-    file_path = os.path.join(path, file_name)
+    file_path = os.path.join(path, file_name) if not diff_path else os.path.join(diff_path, file_name)
+    print(file_path)
     packet_data = {
         'request': request_data,
         'response': response_data
@@ -73,6 +74,12 @@ def packet_callback(pak: Packet):
 def start_capture():
     sniff(filter="tcp port 80", prn=packet_callback, store=0)
 
+def compare_requests():
+    originals = [f for f in listdir(path) if isfile(join(path, f))]
+    start_capture()
+    print(originals)
+    pass
+
 def run_http(app_name):
     resources_dir = os.path.join(os.getcwd(), 'resources/http')
     if not os.path.exists(resources_dir):
@@ -82,4 +89,10 @@ def run_http(app_name):
     path = app_path
     if not os.path.exists(app_path):
         os.makedirs(app_path)
-    start_capture()
+        start_capture()
+    else:
+        now = datetime.now()
+        global diff_path
+        diff_path = path + '/diff/' + str(now)
+        os.makedirs(diff_path, exist_ok=True)
+        compare_requests()
