@@ -112,7 +112,9 @@ RUN chmod +x /home/appium/start-services.sh && \
     chown -R appium:appium /home/appium && \
     chown -R appium:appium /home/appium/.vnc && \
     chown -R appium:appium ${ANDROID_HOME}
-RUN chmod 777 /dev/kvm
+
+# Add kvm group to appium
+RUN usermod -aG render appium
 
 USER appium
 
