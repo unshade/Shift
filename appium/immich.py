@@ -8,7 +8,7 @@ from selenium.webdriver.common.actions import interaction
 from selenium.webdriver.common.actions.action_builder import ActionBuilder
 from selenium.webdriver.common.actions.pointer_input import PointerInput
 
-app_path = "appium/immich.apk"
+app_path = sys.argv[1] if len(sys.argv) > 0 else "appium/immich.apk"
 options = AppiumOptions()
 options.load_capabilities({
 	"platformName": "Android",
