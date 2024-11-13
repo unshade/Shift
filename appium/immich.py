@@ -16,7 +16,7 @@ options.load_capabilities({
 	"platformName": "Android",
 	"appium:options": {
         "automationName": "UiAutomator2", 
-        "platformVersion": "10.0", 
+        "platformVersion": "13.0",
         "app": app_path, 
         "deviceName": "Android Emulator", 
         "noReset": False
