@@ -14,6 +14,7 @@ ENV SDK_VERSION="commandlinetools-linux-9477386_latest.zip" \
 # Install required packages including X11, VNC, and noVNC dependencies
 RUN apt-get update && apt-get install -y \
     wget \
+    default-jdk \
     vim \
     unzip \
     openjdk-11-jdk \
@@ -88,8 +89,10 @@ RUN echo "no" | avdmanager create avd \
     --device "pixel_2"
 
 # Install Appium and UiAutomator2 driver
-RUN npm install -g appium@2.0.0 && \
+RUN npm install -g appium@2.12.1 && \
     appium driver install uiautomator2
+
+RUN npm install @appium/doctor -g
 
 # Create a non-root user
 RUN useradd -m -d /home/appium -s /bin/bash appium && \

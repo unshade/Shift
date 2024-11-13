@@ -30,12 +30,15 @@ adb wait-for-device
 
 sh setup.sh
 
+# Can't install it during the image?
+appium driver install uiautomator2
+
 # Start Appium server
 echo "Starting Appium server..."
 appium --allow-insecure chromedriver_autodownload &
 
-pip install -r requirements.txt immich.apk
-python3 immich.py
+pip install -r requirements.txt
+python3 immich.py immich_x86.apk
 
 # Keep container running
 tail -f /dev/null
