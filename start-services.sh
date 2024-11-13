@@ -23,10 +23,10 @@ emulator -avd test_device -no-audio &
 echo "Waiting for emulator to boot..."
 adb wait-for-device
 
-wget https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/fastdroid-vnc/fastdroid-vnc
-adb push fastdroid-vnc /data/
-adb shell chmod 755 /data/fastdroid-vnc
-adb shell /data/fastdroid-vnc
+#wget https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/fastdroid-vnc/fastdroid-vnc
+#adb push fastdroid-vnc /data/
+#adb shell chmod 755 /data/fastdroid-vnc
+#adb shell /data/fastdroid-vnc
 
 sh setup.sh
 
@@ -34,6 +34,7 @@ sh setup.sh
 echo "Starting Appium server..."
 appium --allow-insecure chromedriver_autodownload &
 
+pip install -r requirements.txt immich.apk
 python3 immich.py
 
 # Keep container running

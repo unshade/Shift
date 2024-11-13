@@ -14,12 +14,14 @@ ENV SDK_VERSION="commandlinetools-linux-9477386_latest.zip" \
 # Install required packages including X11, VNC, and noVNC dependencies
 RUN apt-get update && apt-get install -y \
     wget \
+    vim \
     unzip \
     openjdk-11-jdk \
     git \
     python3 \
     python3-pip \
     python3-numpy \
+    python3-venv \
     curl \
     adb \
     libqt5webkit5-dev \
