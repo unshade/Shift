@@ -86,7 +86,7 @@ RUN sdkmanager --update && \
 RUN echo "no" | avdmanager create avd \
     --name "test_device" \
     --package "system-images;android-33;google_apis;x86_64" \
-    --device "pixel_2"
+    --device "pixel_4"
 
 # Install Appium and UiAutomator2 driver
 RUN npm install -g appium@2.12.1 && \

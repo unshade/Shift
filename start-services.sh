@@ -13,7 +13,7 @@ x11vnc -forever -usepw -display :1 &
 # Start noVNC
 /usr/share/novnc/utils/launch.sh --vnc localhost:5900 --listen 6080 &
 
-sdkmanager --install "system-images;android-29;google_apis;x86" &&     echo "no" | avdmanager create avd -n test_device -k "system-images;android-29;google_apis;x86" -d pixel
+sdkmanager --install "system-images;android-33;google_apis;x86_64" &&     echo "no" | avdmanager create avd -n test_device -k "system-images;android-33;google_apis;x86_64" -d pixel
 
 # Start the Android emulator
 echo "Starting Android emulator..."
