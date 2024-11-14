@@ -6,6 +6,8 @@ from os.path import isfile, join
 
 path = ''
 diff_path = None
+request_num = 0
+comparing = False
 
 def decode_headers(headers):
     decoded_headers = {}
@@ -35,6 +37,7 @@ request_data = None
 
 def packet_callback(pak: Packet):
     global request_data
+    global comparing
     if pak.haslayer(HTTPRequest):
         http_layer = pak[HTTPRequest]
         request_data = {
@@ -69,6 +72,23 @@ def packet_callback(pak: Packet):
             except UnicodeDecodeError:
                 response_data['body'] = "Unable to decode payload"
         save_packet(request_data, response_data)
+        if comparing:
+            global request_num
+            originals = [f for f in listdir(path) if isfile(join(path, f))]
+            print(request_num)
+            if request_num >= len(originals):
+                print('All requests compared')
+                return
+            original_to_compare = originals[request_num]
+            with open(join(path, original_to_compare), 'r') as f:
+                original_packet = json.load(f)
+
+            if original_packet['request'] == request_data and original_packet['response'] == response_data:
+                print('Request matched')
+            else:
+                print('Request did not match')
+
+            request_num += 1
         request_data = None
 
 def start_capture():
@@ -76,8 +96,9 @@ def start_capture():
 
 def compare_requests():
     originals = [f for f in listdir(path) if isfile(join(path, f))]
-    start_capture()
     print(originals)
+
+    start_capture()
     pass
 
 def run_http(app_name):
@@ -89,10 +110,14 @@ def run_http(app_name):
     path = app_path
     if not os.path.exists(app_path):
         os.makedirs(app_path)
+        print('HTTP initial capture started')
         start_capture()
     else:
         now = datetime.now()
         global diff_path
+        global comparing
+        comparing = True
         diff_path = path + '/diff/' + str(now)
         os.makedirs(diff_path, exist_ok=True)
+        print('HTTP capture started, comparing requests')
         compare_requests()
