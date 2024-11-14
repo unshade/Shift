@@ -126,7 +126,7 @@ RUN chmod +x /home/appium/start-services.sh && \
     chown -R appium:appium ${ANDROID_HOME}
 
 # Set net admin capabilities for python
-RUN setcap cap_net_admin+ep /usr/bin/python3.10
+RUN setcap cap_net_raw,cap_net_admin=eip /usr/bin/python3.10
 
 # Add kvm group to appium
 RUN usermod -aG render appium
