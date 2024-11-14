@@ -14,12 +14,15 @@ ENV SDK_VERSION="commandlinetools-linux-9477386_latest.zip" \
 # Install required packages including X11, VNC, and noVNC dependencies
 RUN apt-get update && apt-get install -y \
     wget \
+    default-jdk \
+    vim \
     unzip \
     openjdk-11-jdk \
     git \
     python3 \
     python3-pip \
     python3-numpy \
+    python3-venv \
     curl \
     adb \
     libqt5webkit5-dev \
@@ -83,11 +86,13 @@ RUN sdkmanager --update && \
 RUN echo "no" | avdmanager create avd \
     --name "test_device" \
     --package "system-images;android-33;google_apis;x86_64" \
-    --device "pixel_2"
+    --device "pixel_4"
 
 # Install Appium and UiAutomator2 driver
-RUN npm install -g appium@2.0.0 && \
+RUN npm install -g appium@2.12.1 && \
     appium driver install uiautomator2
+
+RUN npm install @appium/doctor -g
 
 # Create a non-root user
 RUN useradd -m -d /home/appium -s /bin/bash appium && \
@@ -101,6 +106,8 @@ RUN mkdir -p /home/appium/.vnc && \
 # Set up noVNC
 RUN ln -s /usr/share/novnc/vnc.html /usr/share/novnc/index.html
 
+COPY appium/* /home/appium/
+
 # Set working directory
 WORKDIR /home/appium
 
@@ -110,7 +117,9 @@ RUN chmod +x /home/appium/start-services.sh && \
     chown -R appium:appium /home/appium && \
     chown -R appium:appium /home/appium/.vnc && \
     chown -R appium:appium ${ANDROID_HOME}
-RUN chmod 777 /dev/kvm
+
+# Add kvm group to appium
+RUN usermod -aG render appium
 
 USER appium
 
