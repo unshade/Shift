@@ -111,6 +111,9 @@ COPY appium/* /home/appium/
 # Set working directory
 WORKDIR /home/appium
 
+COPY ./server /server
+RUN cd /server && pip install -r requirements.txt
+
 # Copy startup script
 COPY start-services.sh /home/appium/
 RUN chmod +x /home/appium/start-services.sh && \

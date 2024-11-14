@@ -40,5 +40,8 @@ appium --allow-insecure chromedriver_autodownload &
 pip install -r requirements.txt
 python3 immich.py immich_x86.apk
 
+# Add an alias for "python3 /home/appium/server/manager.py run_servers $1 &"
+alias run_servers="python3 /home/appium/server/manager.py run_servers $1 &"
+
 # Keep container running
 tail -f /dev/null
