@@ -28,7 +28,10 @@ adb wait-for-device
 #adb shell chmod 755 /data/fastdroid-vnc
 #adb shell /data/fastdroid-vnc
 
+echo "Emulator started"
+
 sh setup.sh
+pip install -r requirements.txt
 
 # Can't install it during the image?
 appium driver install uiautomator2
@@ -37,11 +40,14 @@ appium driver install uiautomator2
 echo "Starting Appium server..."
 appium --allow-insecure chromedriver_autodownload &
 
+#python3 immich.py immich_x86.apk
+
+cd server || exit 0
 pip install -r requirements.txt
-python3 immich.py immich_x86.apk
+cd ..
 
 # Add an alias for "python3 /home/appium/server/manager.py run_servers $1 &"
-alias run_servers="python3 /home/appium/server/manager.py run_servers $1 &"
+alias run_servers="python3 /home/appium/server/manager.py run_servers"
 
 # Keep container running
 tail -f /dev/null

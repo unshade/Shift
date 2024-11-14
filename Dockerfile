@@ -36,6 +36,7 @@ RUN apt-get update && apt-get install -y \
     libxcomposite1 \
     libxcursor1 \
     libxi6 \
+    libpcap-dev \
     libxtst6 \
     libegl1 \
     zlib1g-dev \
@@ -108,11 +109,14 @@ RUN ln -s /usr/share/novnc/vnc.html /usr/share/novnc/index.html
 
 COPY appium/* /home/appium/
 
+RUN mkdir -p /home/appium/server
+COPY server/* /home/appium/server/
+
 # Set working directory
 WORKDIR /home/appium
 
-COPY ./server /home/appium/server
-RUN cd /home/appium/server && pip install -r requirements.txt
+#COPY ./server /home/appium/server
+#RUN cd /home/appium/server && pip install -r requirements.txt
 
 # Copy startup script
 COPY start-services.sh /home/appium/
@@ -122,7 +126,7 @@ RUN chmod +x /home/appium/start-services.sh && \
     chown -R appium:appium ${ANDROID_HOME}
 
 # Set net admin capabilities for python
-RUN setcap 'CAP_NET_ADMIN,CAP_NET_RAW' $(which python3)
+RUN setcap cap_net_admin+ep /usr/bin/python3.10
 
 # Add kvm group to appium
 RUN usermod -aG render appium
