@@ -101,7 +101,7 @@ def compare_requests():
     start_capture()
     pass
 
-def run_http(app_name):
+def run_http(app_name: str):
     resources_dir = os.path.join(os.getcwd(), 'resources/http')
     if not os.path.exists(resources_dir):
         os.makedirs(resources_dir)
@@ -119,5 +119,5 @@ def run_http(app_name):
         comparing = True
         diff_path = path + '/diff/' + str(now)
         os.makedirs(diff_path, exist_ok=True)
-        print('HTTP capture started, comparing requests')
+        print('HTTP capture started, original trace detected, comparing requests based on :')
         compare_requests()

@@ -1,8 +1,0 @@
-services:
-  server:
-    build: ./server
-    ports:
-      - "8080:80"
-    volumes:
-      - ./server/resources:/app/resources
-    restart: always
