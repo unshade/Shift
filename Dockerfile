@@ -111,8 +111,8 @@ COPY appium/* /home/appium/
 # Set working directory
 WORKDIR /home/appium
 
-COPY ./server /server
-RUN cd /server && pip install -r requirements.txt
+COPY ./server /home/appium/server
+RUN cd /home/appium/server && pip install -r requirements.txt
 
 # Copy startup script
 COPY start-services.sh /home/appium/
@@ -120,6 +120,9 @@ RUN chmod +x /home/appium/start-services.sh && \
     chown -R appium:appium /home/appium && \
     chown -R appium:appium /home/appium/.vnc && \
     chown -R appium:appium ${ANDROID_HOME}
+
+# Set net admin capabilities for python
+RUN setcap 'CAP_NET_ADMIN,CAP_NET_RAW' $(which python3)
 
 # Add kvm group to appium
 RUN usermod -aG render appium
