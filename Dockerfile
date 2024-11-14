@@ -13,6 +13,7 @@ ENV SDK_VERSION="commandlinetools-linux-9477386_latest.zip" \
 
 # Install required packages including X11, VNC, and noVNC dependencies
 RUN apt-get update && apt-get install -y \
+    sudo \
     wget \
     default-jdk \
     vim \
@@ -128,8 +129,8 @@ RUN chmod +x /home/appium/start-services.sh && \
 # Set net admin capabilities for python
 RUN setcap cap_net_raw,cap_net_admin=eip /usr/bin/python3.10
 
-# Add kvm group to appium
-RUN usermod -aG render appium
+# Add appium to groups
+RUN usermod -aG render,kvm,sudo appium
 
 USER appium
 

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#Fix rights for kvm
+sudo chown -R root:kvm /dev/kvm
 # Start Xvfb
 Xvfb :1 -screen 0 1280x800x16 &
 sleep 2
