@@ -9,14 +9,12 @@ build:
     - bigmama
   script:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --single-snapshot --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-  only:
-    - build
+    - /kaniko/executor --single-snapshot --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:latest
 # --single-snapshot https://github.com/GoogleContainerTools/kaniko/issues/2444
 
 run-image-job:
   # use latest image for now
-  image: $CI_REGISTRY_IMAGE
+  image: $CI_REGISTRY_IMAGE:latest
   script:
     - cd server && python3 manager.py run_servers immich & && cd ..
     - python3 immich.py immich_x86.apk
