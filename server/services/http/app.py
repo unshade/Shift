@@ -3,11 +3,15 @@ from scapy.layers.http import HTTPRequest, HTTPResponse
 from scapy.layers.inet import TCP, IP
 from os import listdir
 from os.path import isfile, join
+import os
+import json
+from datetime import datetime
 
 path = ''
 diff_path = None
 request_num = 0
 comparing = False
+
 
 def decode_headers(headers):
     decoded_headers = {}
@@ -21,19 +25,80 @@ def decode_headers(headers):
         decoded_headers[k] = v
     return decoded_headers
 
+
+def filter_data_by_schema(data, schema):
+    """
+    Filter the input data to only include fields specified in the schema.
+
+    :param data: Input dictionary to filter
+    :param schema: Schema dictionary specifying allowed fields
+    :return: Filtered dictionary
+    """
+    if not isinstance(data, dict):
+        return data
+
+    filtered_data = {}
+    for key, value in schema.items():
+        if key in data:
+            # If the value is True, include the entire field
+            if value is True:
+                filtered_data[key] = data[key]
+            # If the value is a dictionary, recursively filter nested fields
+            elif isinstance(value, dict):
+                filtered_data[key] = filter_data_by_schema(data.get(key, {}), value)
+
+    return filtered_data
+
+
 def save_packet(request_data, response_data):
+    """
+    Save packet data to a JSON file, filtering fields based on a predefined schema.
+
+    :param request_data: Dictionary containing request data
+    :param response_data: Dictionary containing response data
+    """
+    # Load schema from the specified file
+    global path
+    global diff_path
+    try:
+        with open('./schema/immich.json', 'r', encoding='utf-8') as schema_file:
+            schema = json.load(schema_file)
+    except FileNotFoundError:
+        print("Schema file not found. Saving full data.")
+        schema = {
+            'request': True,
+            'response': True
+        }
+    except json.JSONDecodeError:
+        print("Error decoding schema file. Saving full data.")
+        schema = {
+            'request': True,
+            'response': True
+        }
+
+    # Filter data based on schema
+    filtered_packet_data = {
+        'request': filter_data_by_schema(request_data, schema.get('request', {})),
+        'response': filter_data_by_schema(response_data, schema.get('response', {}))
+    }
+
+    # Generate unique filename
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
     file_name = f"packet_{timestamp}.json"
     file_path = os.path.join(path, file_name) if not diff_path else os.path.join(diff_path, file_name)
-    print(file_path)
-    packet_data = {
-        'request': request_data,
-        'response': response_data
-    }
+
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    # Save filtered data
     with open(file_path, 'w', encoding='utf-8') as f:
-        json.dump(packet_data, f, ensure_ascii=False, indent=4)
+        json.dump(filtered_packet_data, f, ensure_ascii=False, indent=4)
+
+    print(f"Packet saved to: {file_path}")
+
 
 request_data = None
+
 
 def packet_callback(pak: Packet):
     global request_data
@@ -83,7 +148,17 @@ def packet_callback(pak: Packet):
             with open(join(path, original_to_compare), 'r') as f:
                 original_packet = json.load(f)
 
-            if original_packet['request'] == request_data and original_packet['response'] == response_data:
+            with open('./schema/immich.json', 'r', encoding='utf-8') as schema_file:
+                schema = json.load(schema_file)
+            filtered_request_data = {
+                'request': filter_data_by_schema(request_data, schema.get('request', {})),
+                'response': filter_data_by_schema(response_data, schema.get('response', {}))
+            }
+
+            print(original_packet['request'],'\n', filtered_request_data)
+
+
+            if original_packet['request'] == filtered_request_data['request'] and original_packet['response'] == filtered_request_data['response']:
                 print('Request matched')
             else:
                 print('Request did not match')
@@ -91,8 +166,10 @@ def packet_callback(pak: Packet):
             request_num += 1
         request_data = None
 
+
 def start_capture():
     sniff(filter="tcp port 80", prn=packet_callback, store=0)
+
 
 def compare_requests():
     originals = [f for f in listdir(path) if isfile(join(path, f))]
@@ -100,6 +177,7 @@ def compare_requests():
 
     start_capture()
     pass
+
 
 def run_http(app_name: str):
     resources_dir = os.path.join(os.getcwd(), 'resources/http')
