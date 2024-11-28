@@ -1,30 +1,18 @@
+from os import listdir
+from os.path import isfile, join
+
 from scapy.all import *
 from scapy.layers.http import HTTPRequest, HTTPResponse
 from scapy.layers.inet import TCP, IP
-from os import listdir
-from os.path import isfile, join
-import os
-import json
-from datetime import datetime
+
+from services.file_service import load_schema
+from proto.http.request_service import decode_headers
 
 path = ''
 diff_path = None
 request_num = 0
 comparing = False
 apk_name = ''
-
-
-def decode_headers(headers):
-    decoded_headers = {}
-    for k, v in headers.items():
-        if isinstance(k, bytes):
-            k = k.decode()
-        if isinstance(v, bytes):
-            v = v.decode()
-        elif isinstance(v, dict):
-            v = decode_headers(v)
-        decoded_headers[k] = v
-    return decoded_headers
 
 
 def filter_data_by_schema(data, schema):
@@ -50,24 +38,6 @@ def filter_data_by_schema(data, schema):
 
     return filtered_data
 
-def load_schema():
-    try:
-        schema_path = './schema/' + apk_name + '.json'
-        with open(schema_path, 'r', encoding='utf-8') as schema_file:
-            schema = json.load(schema_file)
-    except FileNotFoundError:
-        print("Schema file not found. Saving full data.")
-        schema = {
-            'request': True,
-            'response': True
-        }
-    except json.JSONDecodeError:
-        print("Error decoding schema file. Saving full data.")
-        schema = {
-            'request': True,
-            'response': True
-        }
-    return schema
 
 def save_packet(request_data, response_data):
     """
@@ -79,7 +49,7 @@ def save_packet(request_data, response_data):
     # Load schema from the specified file
     global path
     global diff_path
-    schema = load_schema()
+    schema = load_schema(app_name=apk_name)
 
     # Filter data based on schema
     filtered_packet_data = {
@@ -153,16 +123,16 @@ def packet_callback(pak: Packet):
             with open(join(path, original_to_compare), 'r') as f:
                 original_packet = json.load(f)
 
-            schema = load_schema()
+            schema = load_schema(apk_name)
             filtered_request_data = {
                 'request': filter_data_by_schema(request_data, schema.get('request', {})),
                 'response': filter_data_by_schema(response_data, schema.get('response', {}))
             }
 
-            print(original_packet['request'],'\n', filtered_request_data)
+            print(original_packet['request'], '\n', filtered_request_data)
 
-
-            if original_packet['request'] == filtered_request_data['request'] and original_packet['response'] == filtered_request_data['response']:
+            if original_packet['request'] == filtered_request_data['request'] and original_packet['response'] == \
+                    filtered_request_data['response']:
                 print('Request matched')
             else:
                 print('Request did not match')
