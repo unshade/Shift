@@ -77,9 +77,13 @@ RUN mkdir -p ${ANDROID_HOME}/licenses && \
     echo "84831b9409646a918e30573bab4c9c91346d8abd" > ${ANDROID_HOME}/licenses/android-sdk-preview-license
 
 # Install Android SDK packages
-RUN sdkmanager --update && \
-    sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.0" \
-    "system-images;android-33;google_apis;x86_64" "emulator"
+RUN sdkmanager --update
+
+RUN sdkmanager "platform-tools"
+RUN sdkmanager "platforms;android-33"
+RUN sdkmanager "build-tools;33.0.0"
+RUN sdkmanager "system-images;android-33;google_apis;x86_64"
+RUN sdkmanager "emulator"
 
 # Fix missing emulator
 #RUN sdkmanager --install "system-images;android-29;google_apis;x86" &&     echo "no" | avdmanager create avd -n test_device -k "system-images;android-29;google_apis;x86" -d pixel
