@@ -11,6 +11,7 @@ path = ''
 diff_path = None
 request_num = 0
 comparing = False
+apk_name = ''
 
 
 def decode_headers(headers):
@@ -49,19 +50,10 @@ def filter_data_by_schema(data, schema):
 
     return filtered_data
 
-
-def save_packet(request_data, response_data):
-    """
-    Save packet data to a JSON file, filtering fields based on a predefined schema.
-
-    :param request_data: Dictionary containing request data
-    :param response_data: Dictionary containing response data
-    """
-    # Load schema from the specified file
-    global path
-    global diff_path
+def load_schema():
     try:
-        with open('./schema/immich.json', 'r', encoding='utf-8') as schema_file:
+        schema_path = './schema/' + apk_name + '.json'
+        with open(schema_path, 'r', encoding='utf-8') as schema_file:
             schema = json.load(schema_file)
     except FileNotFoundError:
         print("Schema file not found. Saving full data.")
@@ -75,6 +67,19 @@ def save_packet(request_data, response_data):
             'request': True,
             'response': True
         }
+    return schema
+
+def save_packet(request_data, response_data):
+    """
+    Save packet data to a JSON file, filtering fields based on a predefined schema.
+
+    :param request_data: Dictionary containing request data
+    :param response_data: Dictionary containing response data
+    """
+    # Load schema from the specified file
+    global path
+    global diff_path
+    schema = load_schema()
 
     # Filter data based on schema
     filtered_packet_data = {
@@ -148,8 +153,7 @@ def packet_callback(pak: Packet):
             with open(join(path, original_to_compare), 'r') as f:
                 original_packet = json.load(f)
 
-            with open('./schema/immich.json', 'r', encoding='utf-8') as schema_file:
-                schema = json.load(schema_file)
+            schema = load_schema()
             filtered_request_data = {
                 'request': filter_data_by_schema(request_data, schema.get('request', {})),
                 'response': filter_data_by_schema(response_data, schema.get('response', {}))
@@ -181,6 +185,8 @@ def compare_requests():
 
 def run_http(app_name: str):
     resources_dir = os.path.join(os.getcwd(), 'resources/http')
+    global apk_name
+    apk_name = app_name
     if not os.path.exists(resources_dir):
         os.makedirs(resources_dir)
     app_path = resources_dir + '/' + app_name

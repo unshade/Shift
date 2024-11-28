@@ -2,3 +2,5 @@
 /server/.venv/
 /server/services/http/resources/
 /server/resources/
+
+.idea
