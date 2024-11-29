@@ -52,4 +52,4 @@ cd ..
 alias run_servers="python3 /home/appium/server/manager.py run_servers"
 
 # Keep container running
-tail -f /dev/null
+#tail -f /dev/null
