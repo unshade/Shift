@@ -16,5 +16,9 @@ run-image-job:
   # use latest image for now
   image: $CI_REGISTRY_IMAGE:latest
   script:
-    - cd server && python3 manager.py run_servers immich & && cd ..
+    - echo "Hello, $USER!"
+    - cd server
+    - python3 manager.py run_servers immich &
+    - cd ..
     - python3 immich.py immich_x86.apk
+    - echo "Goodbye, $USER!"
