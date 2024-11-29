@@ -20,6 +20,7 @@ run-image-job:
   script:
     - echo "Hello, $USER!"
     - cd /home/appium
+    - sh start-services.sh &
     #- cd server
     #- python3 manager.py run_servers immich &
     #- cd ..
