@@ -17,6 +17,9 @@ build:
 run-image-job:
   # use latest image for now
   image: $CI_REGISTRY_IMAGE:latest
+  tags:
+    - docker
+    - bigmama
   script:
     - echo "Hello, $USER!"
     - cd /home/appium
