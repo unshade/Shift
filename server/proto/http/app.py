@@ -1,17 +1,15 @@
+import json
+import xml.dom.minidom as minidom
+import xml.etree.ElementTree as ET
 from os import listdir
 from os.path import isfile, join
 
 from scapy.all import *
 from scapy.layers.http import HTTPRequest, HTTPResponse
 from scapy.layers.inet import TCP, IP
-from os import listdir
-from os.path import isfile, join
-import xml.etree.ElementTree as ET
-import xml.dom.minidom as minidom
 
-
-from services.file_service import load_schema
 from proto.http.request_service import decode_headers
+from services.file_service import load_schema
 
 path = ''
 diff_path = None
@@ -81,6 +79,32 @@ def save_packet(request_data, response_data):
 
 request_data = None
 
+def json_to_xml(json_data, parent=None, initial_name=None):
+    if parent is None:
+        if initial_name:
+            parent = ET.Element(initial_name)
+        else:
+            parent = ET.Element('root')
+    for key, value in json_data.items():
+        if isinstance(value, dict):
+            child = ET.Element(key)
+            parent.append(child)
+            json_to_xml(value, child)
+        else:
+            child = ET.Element(key)
+            child.text = str(value)
+            parent.append(child)
+    return parent
+
+def arrange_differences(original, new):
+    diff = {}
+    for key, value in original.items():
+        if isinstance(value, dict):
+            diff[key] = arrange_differences(value, new.get(key, {}))
+        elif value != new.get(key):
+            diff[key] = {'original': value, 'new': new.get(key)}
+    return diff
+
 
 def packet_callback(pak: Packet):
     global request_data
@@ -147,21 +171,28 @@ def packet_callback(pak: Packet):
                 success = ET.Element('success')
                 testcase.append(success)
             else:
+                diff = arrange_differences(original_packet, filtered_request_data)
                 print('Request did not match')
                 failure = ET.Element('failure', message='Request did not match')
+                failure.append(json_to_xml(original_packet, initial_name='original'))
+                failure.append(json_to_xml(filtered_request_data, initial_name='new'))
+                failure.append(json_to_xml(diff, initial_name='diff'))
                 testcase.append(failure)
             testsuite.append(testcase)
 
             request_num += 1
         request_data = None
 
+
 def stop_filter(pak: Packet):
     global request_num
     global original_num
     return request_num >= original_num
 
+
 def start_capture():
     sniff(filter="tcp port 80", prn=packet_callback, store=0, stop_filter=stop_filter)
+
 
 def compare_requests():
     originals = [f for f in listdir(path) if isfile(join(path, f))]
@@ -170,7 +201,6 @@ def compare_requests():
     print(originals)
     global testsuite
     testsuite = ET.Element('testsuite', name='HTTP Request Comparison', tests=str(len(originals)))
-
 
     start_capture()
 
@@ -182,6 +212,7 @@ def compare_requests():
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write(pretty_xml_as_string)
     print(f'JUnit report generated at {report_path}')
+
 
 def run_http(app_name: str):
     resources_dir = os.path.join(os.getcwd(), 'resources/http')
