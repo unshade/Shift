@@ -4,6 +4,11 @@ from os.path import isfile, join
 from scapy.all import *
 from scapy.layers.http import HTTPRequest, HTTPResponse
 from scapy.layers.inet import TCP, IP
+from os import listdir
+from os.path import isfile, join
+import xml.etree.ElementTree as ET
+import xml.dom.minidom as minidom
+
 
 from services.file_service import load_schema
 from proto.http.request_service import decode_headers
@@ -11,8 +16,10 @@ from proto.http.request_service import decode_headers
 path = ''
 diff_path = None
 request_num = 0
+original_num = 0
 comparing = False
 apk_name = ''
+testsuite: ET.Element = None
 
 
 def filter_data_by_schema(data, schema):
@@ -78,6 +85,7 @@ request_data = None
 def packet_callback(pak: Packet):
     global request_data
     global comparing
+    print(pak.summary())
     if pak.haslayer(HTTPRequest):
         http_layer = pak[HTTPRequest]
         request_data = {
@@ -123,6 +131,8 @@ def packet_callback(pak: Packet):
             with open(join(path, original_to_compare), 'r') as f:
                 original_packet = json.load(f)
 
+            testcase = ET.Element('testcase', name=f'Request {request_num + 1}')
+
             schema = load_schema(apk_name)
             filtered_request_data = {
                 'request': filter_data_by_schema(request_data, schema.get('request', {})),
@@ -134,24 +144,44 @@ def packet_callback(pak: Packet):
             if original_packet['request'] == filtered_request_data['request'] and original_packet['response'] == \
                     filtered_request_data['response']:
                 print('Request matched')
+                success = ET.Element('success')
+                testcase.append(success)
             else:
                 print('Request did not match')
+                failure = ET.Element('failure', message='Request did not match')
+                testcase.append(failure)
+            testsuite.append(testcase)
 
             request_num += 1
         request_data = None
 
+def stop_filter(pak: Packet):
+    global request_num
+    global original_num
+    return request_num >= original_num
 
 def start_capture():
-    sniff(filter="tcp port 80", prn=packet_callback, store=0)
-
+    sniff(filter="tcp port 80", prn=packet_callback, store=0, stop_filter=stop_filter)
 
 def compare_requests():
     originals = [f for f in listdir(path) if isfile(join(path, f))]
+    global original_num
+    original_num = len(originals)
     print(originals)
+    global testsuite
+    testsuite = ET.Element('testsuite', name='HTTP Request Comparison', tests=str(len(originals)))
+
 
     start_capture()
-    pass
 
+    rough_string = ET.tostring(testsuite, 'utf-8')
+    reparsed = minidom.parseString(rough_string)
+    pretty_xml_as_string = reparsed.toprettyxml(indent="  ")
+
+    report_path = os.path.join(diff_path, 'junit_report.xml')
+    with open(report_path, 'w', encoding='utf-8') as f:
+        f.write(pretty_xml_as_string)
+    print(f'JUnit report generated at {report_path}')
 
 def run_http(app_name: str):
     resources_dir = os.path.join(os.getcwd(), 'resources/http')
