@@ -53,6 +53,7 @@ RUN apt-get update && apt-get install -y \
     fluxbox \
     novnc \
     websockify \
+    dnsmasq \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 18.x
@@ -131,6 +132,9 @@ RUN setcap cap_net_raw,cap_net_admin=eip /usr/bin/python3.10
 
 # Add appium to groups
 RUN usermod -aG render,kvm,sudo appium
+
+# Set up dnsmasq
+COPY server/dnsmasq.conf /etc/dnsmasq.conf
 
 USER appium
 
