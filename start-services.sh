@@ -39,7 +39,7 @@ sh setup.sh
 pip install -r requirements.txt
 
 # Can't install it during the image?
-appium driver install uiautomator2
+#appium driver install uiautomator2
 
 # Start Appium server
 echo "Starting Appium server..."
