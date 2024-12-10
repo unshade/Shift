@@ -185,6 +185,8 @@ def packet_callback(pak: Packet):
 
 
 def stop_filter(pak: Packet):
+    if not comparing:
+        return False
     global request_num
     global original_num
     return request_num >= original_num
