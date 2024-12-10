@@ -2,12 +2,21 @@ import multiprocessing
 import shutil
 import argparse
 from proto.http.app import run_http
+from proto.http.server import run_server
 
 def run_servers(app_name):
-    """Launch services listeners for a specific app"""
+    """Launch service listeners for a specific app."""
+    # Start the HTTP process
     http_process = multiprocessing.Process(target=run_http, args=(app_name,))
     http_process.start()
+    
+    # Start the server process
+    http_server_answer = multiprocessing.Process(target=run_server, args=(app_name,))
+    http_server_answer.start()
+
+    # Wait for both processes to finish
     http_process.join()
+    http_server_answer.join()
 
 def clear_all():
     """Clear every persistent datas"""
