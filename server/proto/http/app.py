@@ -57,9 +57,9 @@ def save_packet(request_data, response_data):
     schema = load_schema(app_name=apk_name)
 
     # Filter data based on schema
-    filtered_packet_data = {
-        'request': filter_data_by_schema(request_data, schema.get('request', {})),
-        'response': filter_data_by_schema(response_data, schema.get('response', {}))
+    packet_data = {
+        'request': request_data,
+        'response': response_data
     }
 
     # Generate unique filename
@@ -72,7 +72,7 @@ def save_packet(request_data, response_data):
 
     # Save filtered data
     with open(file_path, 'w', encoding='utf-8') as f:
-        json.dump(filtered_packet_data, f, ensure_ascii=False, indent=4)
+        json.dump(packet_data, f, ensure_ascii=False, indent=4)
 
     print(f"Packet saved to: {file_path}")
 
@@ -155,9 +155,15 @@ def packet_callback(pak: Packet):
             with open(join(path, original_to_compare), 'r') as f:
                 original_packet = json.load(f)
 
+
+
             testcase = ET.Element('testcase', name=f'Request {request_num + 1}')
 
             schema = load_schema(apk_name)
+            original_packet = {
+                'request': filter_data_by_schema(original_packet['request'], schema.get('request', {})),
+                'response': filter_data_by_schema(original_packet['response'], schema.get('response', {}))
+            }
             filtered_request_data = {
                 'request': filter_data_by_schema(request_data, schema.get('request', {})),
                 'response': filter_data_by_schema(response_data, schema.get('response', {}))
