@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Start dnsmasq
+dnsmasq --no-daemon &
+
 #Fix rights for kvm
 sudo chown -R root:kvm /dev/kvm
 # Start Xvfb
@@ -19,7 +22,7 @@ sdkmanager --install "system-images;android-33;google_apis;x86_64" &&     echo "
 
 # Start the Android emulator
 echo "Starting Android emulator..."
-emulator -avd test_device -no-audio &
+emulator -avd test_device -no-audio -dns-server 127.0.0.1 &
 
 # Wait for emulator to be ready
 echo "Waiting for emulator to boot..."

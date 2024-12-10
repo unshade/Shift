@@ -1,13 +1,13 @@
 import multiprocessing
 import shutil
 import argparse
-from services.http.app import run_http
+from proto.http.app import run_http
 
 def run_servers(app_name):
     """Launch services listeners for a specific app"""
-    flask_process = multiprocessing.Process(target=run_http, args=(app_name,))
-    flask_process.start()
-    flask_process.join()
+    http_process = multiprocessing.Process(target=run_http, args=(app_name,))
+    http_process.start()
+    http_process.join()
 
 def clear_all():
     """Clear every persistent datas"""
