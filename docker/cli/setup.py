@@ -2,7 +2,6 @@ import os
 
 from setuptools import setup
 
-
 app_version = os.getenv("DOCKER_ANDROID_VERSION", "test-version")
 
 with open("requirements.txt", "r") as f:

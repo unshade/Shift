@@ -60,7 +60,6 @@ def start_appium() -> None:
     app_appium.start()
 
 
-
 def start_device() -> None:
     given_pt = get_env_value_or_raise(ENV.DEVICE_TYPE)
     selected_device = get_device(given_pt)
@@ -126,7 +125,6 @@ def start_vnc_web() -> None:
     else:
         logger.info("env WEB_VNC cannot be found, VNC_WEB is not started!")
 
-
 @cli.command()
 @click.argument("app", type=click.Choice([app.value for app in Application.App]))
 def start(app):
@@ -147,59 +145,6 @@ def start(app):
         start_vnc_web()
     else:
         logger.error(f"application '{selected_app}' is not supported!")
-
-
-class SharedComponent(Enum):
-    LOG = "log"
-
-
-def shared_log() -> None:
-    if convert_str_to_bool(os.getenv(ENV.WEB_LOG)):
-        from http.server import BaseHTTPRequestHandler, HTTPServer
-
-        log_path = get_env_value_or_raise(ENV.LOG_PATH)
-        log_port = int(get_env_value_or_raise(ENV.WEB_LOG_PORT))
-        logger.info(f"Shared log is enabled! all logs can be found on port '{log_port}'")
-
-        class LogSharedHandler(BaseHTTPRequestHandler):
-            def do_GET(self):
-                # root path
-                if self.path == "/":
-                    html = "<html><body>"
-                    for f in os.listdir(log_path):
-                        html += f"<p><a href=\"{f}\">{f}</a></p>"
-                    html += "</body></html>"
-
-                    self.send_response(200)
-                    self.send_header("Content-type", "text/html")
-                    self.end_headers()
-                    self.wfile.write(html.encode())
-                # open each selected log file
-                else:
-                    p = log_path + self.path
-                    try:
-                        with open(p, "rb") as file:
-                            self.send_response(200)
-                            self.send_header("Content-type", "text/plain")
-                            self.end_headers()
-                            self.wfile.write(file.read())
-                    except FileNotFoundError:
-                        self.send_error(404, "File not found")
-
-        httpd = HTTPServer(('0.0.0.0', log_port), LogSharedHandler)
-        httpd.serve_forever()
-    else:
-        logger.info(f"Shared log is disabled! nothing to do!")
-
-
-@cli.command()
-@click.argument("component", type=click.Choice([component.value for component in SharedComponent]))
-def share(component):
-    selected_component = str(component).lower()
-    if selected_component == SharedComponent.LOG.value.lower():
-        shared_log()
-    else:
-        logger.error(f"component '{component}' is not supported!")
 
 
 if __name__ == '__main__':
