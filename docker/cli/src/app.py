@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import time 
 import subprocess
 import logging
 from enum import Enum
@@ -138,6 +139,7 @@ def start_appium_automation() -> None:
         logger.error("Appium is not running. Please start Appium first.")
         return
 
+
     while True:
         try:
             subprocess.check_call(["adb", "devices"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -146,8 +148,10 @@ def start_appium_automation() -> None:
         except subprocess.CalledProcessError:
             logger.error("No device connected. Please start an emulator.")
             return
-
     
+    # wait 120 seconds for the device to be ready
+
+    time.sleep(120)
     path = os.getenv(ENV.WORK_PATH, "")
     appium_path = os.path.join(path, "appium")
     if not os.path.exists(appium_path):
