@@ -166,7 +166,7 @@ def start_appium_automation() -> None:
         return
 
     try:
-        cmd = f"bash -c 'source {venv_activate} && python {immich_script} immich_x86.apk'"
+        cmd = f"bash -c 'source {venv_activate} && python {immich_script} {appium_path}/immich_x86.apk'"
         app_appium_automation = Application("appium_automation", cmd, "",False)
         app_appium_automation.start()
     except subprocess.CalledProcessError as e:
