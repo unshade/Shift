@@ -17,6 +17,7 @@ run-image-job:
   tags:
     - alexandre
   script:
+    - export ENVIROMENT=ci
     - echo "Hello, $USER!"
     - cd /home/androidusr/appium
     - echo "Goodbye, $USER!"
