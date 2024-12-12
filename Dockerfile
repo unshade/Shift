@@ -16,6 +16,7 @@ RUN apt-get -qqy update && apt-get -qqy install --no-install-recommends \
     dnsmasq \
     socat \
     supervisor \
+    netcat \
  && apt autoremove -y \
  && apt clean all \
  && rm -rf /var/lib/apt/lists/*
