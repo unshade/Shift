@@ -1,4 +1,3 @@
-import json
 import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
 from os import listdir
@@ -10,6 +9,7 @@ from scapy.layers.inet import TCP, IP
 
 from proto.http.request_service import decode_headers
 from services.file_service import load_schema
+from services.xml_utils import json_to_xml
 
 path = ''
 diff_path = None
@@ -79,22 +79,7 @@ def save_packet(request_data, response_data):
 
 request_data = None
 
-def json_to_xml(json_data, parent=None, initial_name=None):
-    if parent is None:
-        if initial_name:
-            parent = ET.Element(initial_name)
-        else:
-            parent = ET.Element('root')
-    for key, value in json_data.items():
-        if isinstance(value, dict):
-            child = ET.Element(key)
-            parent.append(child)
-            json_to_xml(value, child)
-        else:
-            child = ET.Element(key)
-            child.text = str(value)
-            parent.append(child)
-    return parent
+
 
 def arrange_differences(original, new):
     diff = {}
