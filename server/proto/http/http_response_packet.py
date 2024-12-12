@@ -1,4 +1,7 @@
-class HttpPacket:
+from services.schema_filter import filter_data_by_schema
+
+
+class HttpResponsePacket:
     def __init__(self, source_ip, destination_ip, source_port, destination_port, status_code, reason_phrase, headers):
         self.body = None
         self.source_ip = source_ip
@@ -24,5 +27,17 @@ class HttpPacket:
             'body': self.body
         }
 
-    def __eq__(self, other):
-        return self.to_dict() == other.to_dict()
+    def __eq__(self, other, schema=None):
+        """
+        Compare two HttpPacket objects.
+        :param other: The other HttpPacket object
+        :param schema: Optional schema to filter the comparison
+        :return: True if the objects are equal, False otherwise
+        """
+        if not schema:
+            return self.to_dict() == other.to_dict()
+
+        self_filtered = filter_data_by_schema(self.to_dict(), schema)
+        other_filtered = filter_data_by_schema(other.to_dict(), schema)
+
+        return self_filtered == other_filtered

@@ -21,9 +21,6 @@ apk_name = ''
 testsuite: ET.Element = None
 
 
-
-
-
 def save_packet(request_data, response_data):
     """
     Save packet data to a JSON file, filtering fields based on a predefined schema.
