@@ -117,8 +117,6 @@ def packet_callback(pak: Packet):
             with open(join(path, original_to_compare), 'r') as f:
                 original_packet = json.load(f)
 
-
-
             testcase = ET.Element('testcase', name=f'Request {request_num + 1}')
 
             schema = load_schema(apk_name)

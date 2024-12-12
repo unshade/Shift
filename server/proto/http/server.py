@@ -12,7 +12,13 @@ class PacketMatcher:
         """
         self.packets = []
         self.load_packets(packet_directory)
-    
+        self.request_number = 0
+
+    def compare_packets(self, incoming_request):
+        if self.request_number >= len(self.packets):
+            print("All requests compared")
+            return None
+
     def load_packets(self, directory):
         """
         Load all JSON packet files from the specified directory.
@@ -111,6 +117,7 @@ def create_app(packet_directory):
         return jsonify({"error": "No matching packet found"}), 404
     
     return app
+
 
 def run_server(packet_directory, host='0.0.0.0', port=80):
     """
