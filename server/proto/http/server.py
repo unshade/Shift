@@ -105,9 +105,36 @@ class PacketMatcher:
             headers=original_packet['response']['headers']
         )
         response.add_body(original_packet['response'].get('body', ''))
+        self.save_packet(original_request.to_dict(), response.to_dict())
         return response.to_dict()
 
 
+    def save_packet(self, request_data, response_data):
+        """
+        Save packet data to a JSON file, filtering fields based on a predefined schema.
+
+        :param request_data: Dictionary containing request data
+        :param response_data: Dictionary containing response data
+        """
+        # Filter data based on schema
+        packet_data = {
+            'request': request_data,
+            'response': response_data
+        }
+
+        # Generate unique filename
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        file_name = f"packet_{timestamp}.json"
+        file_path = os.path.join(self.compare_path, file_name)
+
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+        # Save filtered data
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(packet_data, f, ensure_ascii=False, indent=4)
+
+        print(f"Packet saved to: {file_path}")
 
 
     def load_packets(self, directory):
