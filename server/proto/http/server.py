@@ -213,6 +213,14 @@ def run_server(packet_directory, host='0.0.0.0', port=80):
     app_name = packet_directory
     packet_directory = "resources/http/"+packet_directory
     app = create_app(packet_directory, app_name)
+        # open first file of packet_directory
+    with open(packet_directory + '/' + os.listdir(packet_directory)[0], 'r') as f:
+        packet = json.load(f)
+    domain = packet['request']['headers']['Host']
+    with open('/etc/hosts', 'w') as f:
+        f.write(f'{host} {domain}\n')
+        f.write(f'{host} www.{domain}\n')
+    os.system('sudo systemctl restart systemd-resolved')
     print(f"Starting server on {host}:{port}")
     print(f"Using packets from directory: {packet_directory}")
     app.run(host=host, port=port)
