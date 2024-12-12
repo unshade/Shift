@@ -41,10 +41,13 @@ class HttpRequestPacket:
         :param schema: Optional schema to filter the comparison
         :return: True if the objects are equal, False otherwise
         """
+
         if not self.schema:
             return self.to_dict() == other.to_dict()
 
         self_filtered = filter_data_by_schema(self.to_dict(), self.schema)
         other_filtered = filter_data_by_schema(other.to_dict(), self.schema)
+
+        print('Comparing : ', self_filtered, other_filtered)
 
         return self_filtered == other_filtered

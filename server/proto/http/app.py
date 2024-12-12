@@ -91,30 +91,8 @@ def packet_callback(pak: Packet):
         save_packet(request_data, response_data)
         request_data = None
 
-
 def start_capture():
     sniff(filter="tcp port 80", prn=packet_callback, store=0)
-
-
-def compare_requests():
-    originals = [f for f in listdir(path) if isfile(join(path, f))]
-    global original_num
-    original_num = len(originals)
-    print(originals)
-    global testsuite
-    testsuite = ET.Element('testsuite', name='HTTP Request Comparison', tests=str(len(originals)))
-
-    start_capture()
-
-    rough_string = ET.tostring(testsuite, 'utf-8')
-    reparsed = minidom.parseString(rough_string)
-    pretty_xml_as_string = reparsed.toprettyxml(indent="  ")
-
-    report_path = os.path.join(diff_path, 'junit_report.xml')
-    with open(report_path, 'w', encoding='utf-8') as f:
-        f.write(pretty_xml_as_string)
-    print(f'JUnit report generated at {report_path}')
-
 
 def run_http(app_name: str):
     resources_dir = os.path.join(os.getcwd(), 'resources/http')
