@@ -1,23 +1,100 @@
 import os
 import json
+import xml.etree.ElementTree as ET
+import xml.dom.minidom as minidom
+from datetime import datetime
+
 from flask import Flask, request, jsonify
 import logging
 
+from proto.http.http_request_packet import HttpRequestPacket
+from services.dict_utils import arrange_differences
+from services.file_service import load_schema
+from services.schema_filter import filter_data_by_schema
+from services.xml_utils import json_to_xml
+
+
 class PacketMatcher:
-    def __init__(self, packet_directory):
+    def __init__(self, packet_directory, apk_name):
         """
         Initialize the packet matcher with packets from a given directory.
         
         :param packet_directory: Directory containing JSON packet files
         """
+        self.apk_name = apk_name
         self.packets = []
         self.load_packets(packet_directory)
         self.request_number = 0
+        self.testsuite = ET.Element('testsuite', name='HTTP Request Comparison', tests=str(len(self.packets)))
+        self.compare_path = os.path.join(os.getcwd(), 'resources/http', self.apk_name, 'diff', str(datetime.now()))
+        os.makedirs(self.compare_path, exist_ok=True)
+
+
 
     def compare_packets(self, incoming_request):
         if self.request_number >= len(self.packets):
             print("All requests compared")
-            return None
+            rough_string = ET.tostring(self.testsuite, 'utf-8')
+            beautified = minidom.parseString(rough_string)
+            pretty_xml_as_string = beautified.toprettyxml(indent="  ")
+
+            report_path = os.path.join(self.compare_path, 'junit_report.xml')
+            with open(report_path, 'w', encoding='utf-8') as f:
+                f.write(pretty_xml_as_string)
+            print(f'JUnit report generated at {report_path}')
+            exit(0)
+
+        original_packet = self.packets[self.request_number]
+
+        testcase = ET.Element('testcase', name=f'Request {self.request_number + 1}')
+        schema = load_schema(self.apk_name)
+
+        original_request = HttpRequestPacket(
+            source_ip=original_packet['request']['source_ip'],
+            destination_ip=original_packet['request']['destination_ip'],
+            source_port=original_packet['request']['source_port'],
+            destination_port=original_packet['request']['destination_port'],
+            method=original_packet['request']['method'],
+            path=original_packet['request']['path'],
+            headers=original_packet['request']['headers']
+        )
+        original_request.add_body(original_packet['request'].get('body', ''))
+        original_request.add_schema(schema.get('request', {}))
+
+        new_request = HttpRequestPacket(
+            source_ip=incoming_request['source_ip'],
+            destination_ip=incoming_request['destination_ip'],
+            source_port=incoming_request['source_port'],
+            destination_port=incoming_request['destination_port'],
+            method=incoming_request['method'],
+            path=incoming_request['path'],
+            headers=incoming_request['headers']
+        )
+        new_request.add_body(incoming_request.get('body', ''))
+        new_request.add_schema(schema.get('request', {}))
+
+        if original_request == new_request:
+            print('Request matched')
+            success = ET.Element('success')
+            testcase.append(success)
+        else:
+            diff = arrange_differences(
+                original_request.to_filtered_dict(),
+                new_request.to_filtered_dict()
+            )
+
+            print('Request did not match')
+            failure = ET.Element('failure', message='Request did not match')
+            failure.append(json_to_xml(original_request.to_filtered_dict(), initial_name='original'))
+            failure.append(json_to_xml(new_request.to_filtered_dict(), initial_name='new'))
+            failure.append(json_to_xml(diff, initial_name='diff'))
+            testcase.append(failure)
+        self.testsuite.append(testcase)
+
+        self.request_number += 1
+
+
+
 
     def load_packets(self, directory):
         """

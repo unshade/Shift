@@ -4,6 +4,7 @@ from services.schema_filter import filter_data_by_schema
 class HttpRequestPacket:
     def __init__(self, source_ip, destination_ip, source_port, destination_port, method, path, headers):
         self.body = None
+        self.schema = None
         self.source_ip = source_ip
         self.destination_ip = destination_ip
         self.source_port = source_port
@@ -14,6 +15,9 @@ class HttpRequestPacket:
 
     def add_body(self, body):
         self.body = body
+
+    def add_schema(self, schema):
+        self.schema = schema
 
     def to_dict(self):
         return {
@@ -27,17 +31,20 @@ class HttpRequestPacket:
             'body': self.body
         }
 
-    def __eq__(self, other, schema=None):
+    def to_filtered_dict(self):
+        return filter_data_by_schema(self.to_dict(), self.schema)
+
+    def __eq__(self, other):
         """
         Compare two HttpPacket objects.
         :param other: The other HttpPacket object
         :param schema: Optional schema to filter the comparison
         :return: True if the objects are equal, False otherwise
         """
-        if not schema:
+        if not self.schema:
             return self.to_dict() == other.to_dict()
 
-        self_filtered = filter_data_by_schema(self.to_dict(), schema)
-        other_filtered = filter_data_by_schema(other.to_dict(), schema)
+        self_filtered = filter_data_by_schema(self.to_dict(), self.schema)
+        other_filtered = filter_data_by_schema(other.to_dict(), self.schema)
 
         return self_filtered == other_filtered
