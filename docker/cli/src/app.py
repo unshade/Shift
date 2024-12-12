@@ -129,6 +129,21 @@ def start_vnc_web() -> None:
     else:
         logger.info("Environment variable WEB_VNC is not set. VNC Web will not start.")
 
+def start_http_server() -> None:
+    """Start the HTTP server."""
+
+    path = os.getenv(ENV.WORK_PATH, "")
+    venv_activate = os.path.join(path, "venv", "bin", "activate")
+    manager_path = os.path.join(path, "server", "manager.py")
+
+    try:
+        cmd = f"bash -c 'source {venv_activate} && cd {path}/server && python {manager_path} run_servers immich'"
+        http_server = Application("http_server", cmd, "",False)
+        http_server.start()
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to start Appium automation: {e}")
+  
+
 
 def start_appium_automation() -> None:
     """Start the Appium automation process."""
@@ -148,10 +163,7 @@ def start_appium_automation() -> None:
         except subprocess.CalledProcessError:
             logger.error("No device connected. Please start an emulator.")
             return
-    
-    # wait 120 seconds for the device to be ready
 
-    time.sleep(120)
     path = os.getenv(ENV.WORK_PATH, "")
     appium_path = os.path.join(path, "appium")
     if not os.path.exists(appium_path):
@@ -189,6 +201,7 @@ def start(app):
         Application.App.PORT_FORWARDER.value.lower(): start_port_forwarder,
         Application.App.VNC_SERVER.value.lower(): start_vnc_server,
         Application.App.VNC_WEB.value.lower(): start_vnc_web,
+        Application.App.HTTP_SERVER.value.lower(): start_http_server,
         Application.App.APPIUM_AUTOMATION.value.lower(): start_appium_automation,
     }
 

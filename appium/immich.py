@@ -23,7 +23,7 @@ options.load_capabilities({
 	"platformName": "Android",
 	"appium:options": {
         "automationName": "UiAutomator2", 
-        "platformVersion": "13.0",
+        "platformVersion": "14.0",
         "app": app_path, 
         "deviceName": "Android Emulator", 
         "noReset": False
@@ -35,7 +35,7 @@ options.load_capabilities({
 })
 
 driver = webdriver.Remote("http://127.0.0.1:4723", options=options)
-wait = WebDriverWait(driver, 10)  # 10 seconds timeout
+wait = WebDriverWait(driver, 200)  # 200 seconds timeout
 
 try:
     # Use explicit wait for server button
@@ -49,7 +49,7 @@ try:
         (AppiumBy.CLASS_NAME, "android.widget.EditText")
     ))
     server_url.click()
-    server_url.send_keys(server_url)
+    server_url.send_keys(server_ip)
 
     # Wait for and click Next button
     server_next = wait.until(EC.element_to_be_clickable(
