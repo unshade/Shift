@@ -164,6 +164,9 @@ def create_app(packet_directory, app_name):
 
         response = packet_matcher.compare_packets(incoming_request)
 
+        if response == -1:
+            os._exit(0)
+
         if response:
             return jsonify(response)
 
