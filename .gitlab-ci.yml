@@ -5,7 +5,7 @@ build:
     entrypoint: [""]
   timeout: 1h
   tags:
-    - alexandre
+    - bigmama
   script:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --single-snapshot --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:latest
@@ -15,7 +15,7 @@ run-image-job:
   # use latest image for now
   image: $CI_REGISTRY_IMAGE:latest
   tags:
-    - alexandre
+    - kvm
   script:
     - export ENVIROMENT=ci
     - echo "Hello, $USER!"
