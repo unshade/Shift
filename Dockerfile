@@ -151,6 +151,12 @@ ${WORK_PATH}/venv/bin/pip install -r ${WORK_PATH}/server/requirements.txt
 #===================
 RUN echo ${APP_PATH}/docker/configs/display/.fehbg >> /etc/xdg/openbox/autostart
 
+#===================
+# Fix ipv6
+#===================
+RUN sysctl net.ipv6.conf.all.disable_ipv6=1
+RUN echo "net.ipv6.conf.all.disable_ipv6 = 1" >> /etc/sysctl.conf
+
 #==================
 # Use created user
 #==================
