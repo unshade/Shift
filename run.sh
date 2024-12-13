@@ -22,7 +22,7 @@ WEB_VNC=true
 VNC_PORT=5900
 WEB_VNC_PORT=6080
 if [ "$WEB_VNC" = true ]; then
-    /opt/noVNC/utils/novnc_proxy --vnc localhost:$VNC_PORT --listen localhost:$WEB_VNC_PORT &
+    /opt/noVNC/utils/novnc_proxy --vnc localhost:$VNC_PORT --listen 0.0.0.0:$WEB_VNC_PORT &
 else
     echo "Environment variable WEB_VNC is not set. VNC Web will not start."
 fi

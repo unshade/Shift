@@ -27,16 +27,11 @@ RUN apt-get -qqy update && apt-get -qqy install --no-install-recommends \
 RUN apt-get -qqy update && \
     apt-get -qqy --no-install-recommends install \
     python3-pip \
+    python3-numpy \
     python3-venv \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* \
   && update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
-
-#=====================
-# Set release version
-#=====================
-ARG DOCKER_ANDROID_VERSION=13.0
-ENV DOCKER_ANDROID_VERSION=${DOCKER_ANDROID_VERSION}
 
 #===============
 # Expose Ports
@@ -127,29 +122,19 @@ EXPOSE 5900 6080
 #==========
 # Base
 
-RUN rm -rf ${SCRIPT_PATH}
-ENV SCRIPT_PATH="docker-android"
 ENV WORK_PATH="/home/androidusr"
-ENV APP_PATH=${WORK_PATH}/${SCRIPT_PATH}
-RUN mkdir -p ${APP_PATH}
-COPY docker ${APP_PATH}/docker
-RUN chown -R 1300:1301 ${APP_PATH} \
- && pip install --quiet -e ${APP_PATH}/docker/cli
-RUN chmod 760 ${APP_PATH}/docker/scripts/run.sh
+
+COPY run.sh ${WORK_PATH}/
+RUN chmod 760 ${WORK_PATH}/run.sh
 
 # Appium
 COPY appium ${WORK_PATH}/appium 
 COPY server ${WORK_PATH}/server
-RUN chown -R 1300:1301 ${WORK_PATH}/appium ${WORK_PATH}/server
+RUN chown -R 1300:1301 ${WORK_PATH}/appium ${WORK_PATH}/server ${WORK_PATH}/run.sh
 
 RUN python3 -m venv ${WORK_PATH}/venv 
 RUN ${WORK_PATH}/venv/bin/pip install -r ${WORK_PATH}/appium/requirements.txt && \
 ${WORK_PATH}/venv/bin/pip install -r ${WORK_PATH}/server/requirements.txt
-
-#===================
-# Configure OpenBox
-#===================
-RUN echo ${APP_PATH}/docker/configs/display/.fehbg >> /etc/xdg/openbox/autostart
 
 #===================
 # Fix ipv6
@@ -173,4 +158,4 @@ RUN mkdir -p "${WORK_PATH}/.config/Android Open Source Project" \
 #=========
 STOPSIGNAL SIGTERM
 ENV DEVICE_TYPE=emulator
-ENTRYPOINT ["/home/androidusr/docker-android/docker/scripts/run.sh"]
+ENTRYPOINT ["/home/androidusr/run.sh"]
