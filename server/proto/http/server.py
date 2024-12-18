@@ -120,7 +120,11 @@ def run_server(packet_directory, host='0.0.0.0', port=80):
     :param host: Host to bind the server to (default: 0.0.0.0)
     :param port: Port to run the server on (default: 80)
     """
+
     packet_directory = "resources/http/"+packet_directory
+    if not os.path.exists(packet_directory):
+        print(f"Directory '{packet_directory}' does not exist. Exiting.")
+        return
     app = create_app(packet_directory)
     print(f"Starting server on {host}:{port}")
     print(f"Using packets from directory: {packet_directory}")

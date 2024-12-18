@@ -5,29 +5,19 @@ build:
     entrypoint: [""]
   timeout: 1h
   tags:
-    - docker
     - bigmama
   script:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --single-snapshot --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:latest
-  only:
-    - build
 # --single-snapshot https://github.com/GoogleContainerTools/kaniko/issues/2444
 
 run-image-job:
   # use latest image for now
   image: $CI_REGISTRY_IMAGE:latest
   tags:
-    - docker
-    - bigmama
+    - kvm
   script:
+    - export ENVIROMENT=ci
     - echo "Hello, $USER!"
-    - cd /home/appium
-    - sh start-services.sh
-    #- cd server
-    #- python3 manager.py run_servers immich &
-    #- cd ..
-    - python3 -m pip install --upgrade pip
-    - python3 -m pip install -r requirements.txt
-    - python3 immich.py immich_x86.apk
+    - cd /home/androidusr/appium
     - echo "Goodbye, $USER!"
