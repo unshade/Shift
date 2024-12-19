@@ -27,9 +27,10 @@ else
     echo "Environment variable WEB_VNC is not set. VNC Web will not start."
 fi
 
-emulator -avd emu -no-audio -gpu swiftshader_indirect -no-snapshot -no-boot-anim -accel on -no-snapshot-save -no-snapshot-load -writable-system -verbose -wipe-data -dns-server 8.8.8.8 &
+emulator -avd emu -no-audio -gpu swiftshader_indirect -no-snapshot -no-boot-anim -accel on -no-snapshot-save -no-snapshot-load -writable-system -verbose -wipe-data &
+echo "Trying to start emulator"
 adb wait-for-device
-echo "finished waiting for device"
+echo "Finished waiting for device"
 
 A=$(adb shell getprop sys.boot_completed | tr -d '\r')
 while [ "$A" != "1" ]; do

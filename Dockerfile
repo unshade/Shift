@@ -136,12 +136,6 @@ RUN python3 -m venv ${WORK_PATH}/venv
 RUN ${WORK_PATH}/venv/bin/pip install -r ${WORK_PATH}/appium/requirements.txt && \
 ${WORK_PATH}/venv/bin/pip install -r ${WORK_PATH}/server/requirements.txt
 
-#===================
-# Fix ipv6
-#===================
-RUN sysctl net.ipv6.conf.all.disable_ipv6=1
-RUN echo "net.ipv6.conf.all.disable_ipv6 = 1" >> /etc/sysctl.conf
-
 #==================
 # Use created user
 #==================
