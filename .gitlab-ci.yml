@@ -16,7 +16,8 @@ run-image-job:
   # use latest image for now
   image: $CI_REGISTRY_IMAGE:latest
   tags:
-    - kvm
+    # use own runner
+    - kvm-alex
   script:
     - export ENVIROMENT=ci
     - echo "Hello, $USER!"
