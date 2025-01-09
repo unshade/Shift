@@ -213,8 +213,10 @@ def run_server(packet_directory, host='0.0.0.0', port=80):
     app_name = packet_directory
     packet_directory = "resources/http/"+packet_directory
     app = create_app(packet_directory, app_name)
-        # open first file of packet_directory
-    with open(packet_directory + '/' + os.listdir(packet_directory)[0], 'r') as f:
+
+    pkt = os.listdir(packet_directory)
+    pkt.remove("diff")
+    with open(packet_directory + '/' + pkt[0], 'r') as f:
         packet = json.load(f)
     domain = packet['request']['headers']['Host']
     with open('/etc/hosts', 'w') as f:

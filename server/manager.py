@@ -8,19 +8,17 @@ from proto.http.server import run_server
 def run_servers(app_name):
     """Launch service listeners for a specific app."""
     # Check the environment variable
-    environnement = os.getenv("ENVIRONNEMENT", "DEV")
-    if environnement not in ["DEV", "CI"]:
-        environnement = "DEV"
-
+    stage = os.getenv("STAGE", "DEV")
+    print(f"STAGE environment variable: {stage}")
     # Start the HTTP process only if ENVIRONNEMENT is set to "DEV"
     http_process = None
-    if environnement == "DEV":
+    if stage == "DEV":
         http_process = multiprocessing.Process(target=run_http, args=(app_name,))
         http_process.start()
 
     # Always start the server process
     http_server_answer = None
-    if environnement == "CI":
+    if stage == "CI":
         http_server_answer = multiprocessing.Process(target=run_server, args=(app_name,))
         http_server_answer.start()
 
