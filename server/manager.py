@@ -1,6 +1,7 @@
 import multiprocessing
 import shutil
 import argparse
+import os
 from proto.http.app import run_http
 from proto.http.server import run_server
 
@@ -8,6 +9,8 @@ def run_servers(app_name):
     """Launch service listeners for a specific app."""
     # Check the environment variable
     environnement = os.getenv("ENVIRONNEMENT", "DEV")
+    if environnement not in ["DEV", "CI"]:
+        environnement = "DEV"
 
     # Start the HTTP process only if ENVIRONNEMENT is set to "DEV"
     http_process = None
@@ -16,6 +19,7 @@ def run_servers(app_name):
         http_process.start()
 
     # Always start the server process
+    http_server_answer = None
     if environnement == "CI":
         http_server_answer = multiprocessing.Process(target=run_server, args=(app_name,))
         http_server_answer.start()
