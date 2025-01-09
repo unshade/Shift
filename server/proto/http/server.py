@@ -219,10 +219,11 @@ def run_server(packet_directory, host='0.0.0.0', port=80):
     with open(packet_directory + '/' + pkt[0], 'r') as f:
         packet = json.load(f)
     domain = packet['request']['headers']['Host']
+    print(f"Setting up domain: {domain}")
     with open('/etc/hosts', 'w') as f:
         f.write(f'{host} {domain}\n')
         f.write(f'{host} www.{domain}\n')
-    os.system('sudo systemctl restart systemd-resolved')
+    #os.system('sudo systemctl restart systemd-resolved')
     print(f"Starting server on {host}:{port}")
     print(f"Using packets from directory: {packet_directory}")
     app.run(host=host, port=port)
