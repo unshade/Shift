@@ -1,5 +1,5 @@
 #!/bin/bash
- echo "no" | avdmanager create avd -f -n emu -b x86_64 -k "system-images;android-34;google_apis;x86_64"
+ echo "no" | avdmanager create avd -f -n emu -b x86_64 -k "system-images;android-34;google_apis;x86_64" -d pixel_5
 
 sudo chown 1300:1301 /dev/kvm
 
@@ -39,6 +39,8 @@ while [ "$A" != "1" ]; do
     A=$(adb shell getprop sys.boot_completed | tr -d '\r')
 done
 
+adb shell cmd bluetooth_manager disable
+
 echo "Emulator booted"
 
 /usr/bin/appium &
@@ -46,11 +48,12 @@ while ! nc -z localhost 4723; do
     echo "Waiting for Appium to start..."
     sleep 2
 done
+echo "Appium started"
 
 export STAGE="CI"
+echo "Starting the server (logs are saved in /home/androidusr/server/logs.txt)"
 cd /home/androidusr/server
-sudo -E /home/androidusr/venv/bin/python /home/androidusr/server/manager.py run_servers immich >> /home/androidusr/server/logs.txt 2>&1
+sudo -E /home/androidusr/venv/bin/python /home/androidusr/server/manager.py run_servers immich >> /home/androidusr/server/logs.txt 2>&1 &
+echo "Starting appium automation"
 cd /home/androidusr/appium
 /home/androidusr/venv/bin/python /home/androidusr/appium/immich.py /home/androidusr/appium/immich_x86.apk
-
-wait

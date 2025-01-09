@@ -56,12 +56,15 @@ try:
         (AppiumBy.ANDROID_UIAUTOMATOR, "new UiSelector().className(\"android.widget.EditText\").instance(0)")
     ))
     email_field.click()
+    driver.implicitly_wait(1)
     email_field.send_keys(server_username)
+    driver.implicitly_wait(1)
 
     password_field = wait.until(EC.presence_of_element_located(
         (AppiumBy.ANDROID_UIAUTOMATOR, "new UiSelector().className(\"android.widget.EditText\").instance(1)")
     ))
     password_field.click()
+    driver.implicitly_wait(1)
     password_field.send_keys(server_password)
 
     # Login
@@ -106,15 +109,11 @@ try:
     # Navigate back
     for _ in range(2):
         back_button = wait.until(EC.element_to_be_clickable(
-            (AppiumBy.ACCESSIBILITY_ID, "Back")
-        ))
+                (AppiumBy.ACCESSIBILITY_ID, "Back")
+            ))
         back_button.click()
 
-    # Additional backup operations
-    view_element = wait.until(EC.element_to_be_clickable(
-        (AppiumBy.ANDROID_UIAUTOMATOR, "new UiSelector().className(\"android.view.View\").instance(8)")
-    ))
-    view_element.click()
+    driver.back()
 
     backup_button = wait.until(EC.element_to_be_clickable(
         (AppiumBy.ACCESSIBILITY_ID, "Backup")

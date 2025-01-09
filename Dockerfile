@@ -57,9 +57,13 @@ ENV EMULATOR_ANDROID_VERSION=${EMULATOR_ANDROID_VERSION} \
     EMULATOR_BROWSER=chrome
 ENV PATH=${PATH}:${ANDROID_HOME}/build-tools
 RUN yes | sdkmanager --licenses \
- && sdkmanager "platforms;android-${EMULATOR_API_LEVEL}" \
- "system-images;android-${EMULATOR_API_LEVEL};${EMULATOR_IMG_TYPE};${EMULATOR_SYS_IMG}" "emulator" \
- && ln -s ${ANDROID_HOME}/emulator/emulator /usr/bin/
+ && sdkmanager --install \
+    "platforms;android-${EMULATOR_API_LEVEL}" \
+    "system-images;android-${EMULATOR_API_LEVEL};${EMULATOR_IMG_TYPE};${EMULATOR_SYS_IMG}" \
+    "emulator" \
+ && ln -sf ${ANDROID_HOME}/emulator/emulator /usr/bin/emulator
+
+ENV PATH="${ANDROID_HOME}/tools/bin:${PATH}"
 
 #=============
 # UI Packages
