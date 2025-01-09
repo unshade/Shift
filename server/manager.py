@@ -6,17 +6,26 @@ from proto.http.server import run_server
 
 def run_servers(app_name):
     """Launch service listeners for a specific app."""
-    # Start the HTTP process
-    #http_process = multiprocessing.Process(target=run_http, args=(app_name,))
-    #http_process.start()
-    
-    # Start the server process
-    http_server_answer = multiprocessing.Process(target=run_server, args=(app_name,))
-    http_server_answer.start()
+    # Check the environment variable
+    environnement = os.getenv("ENVIRONNEMENT", "DEV")
 
-    # Wait for both processes to finish
-    #http_process.join()
-    http_server_answer.join()
+    # Start the HTTP process only if ENVIRONNEMENT is set to "DEV"
+    http_process = None
+    if environnement == "DEV":
+        http_process = multiprocessing.Process(target=run_http, args=(app_name,))
+        http_process.start()
+
+    # Always start the server process
+    if environnement == "CI":
+        http_server_answer = multiprocessing.Process(target=run_server, args=(app_name,))
+        http_server_answer.start()
+
+    # Wait for the processes to finish
+    if http_process is not None:
+        http_process.join()
+    
+    if http_server_answer is not None:
+        http_server_answer.join()
 
 def clear_all():
     """Clear every persistent datas"""

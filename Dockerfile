@@ -1,148 +1,155 @@
-FROM ubuntu:22.04
+FROM appium/appium:v2.11.4-p0
 
-# Prevent interactive prompts during package installation
-ENV DEBIAN_FRONTEND=noninteractive
+USER root
 
-# Set environment variables
-ENV SDK_VERSION="commandlinetools-linux-9477386_latest.zip" \
-    ANDROID_HOME="/opt/android-sdk" \
-    ANDROID_SDK_ROOT="/opt/android-sdk" \
-    PATH="$PATH:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:/opt/android-sdk/emulator" \
-    DISPLAY=:1 \
-    RESOLUTION=1280x800
+#================
+# Basic Packages
+#----------------
+# dnsmasq
+#   DNS server
+# socat
+#   Port forwarder
+# supervisor
+#   Process manager
+#================
+RUN apt-get -qqy update && apt-get -qqy install --no-install-recommends \
+    dnsmasq \
+    socat \
+    supervisor \
+    netcat \
+ && apt autoremove -y \
+ && apt clean all \
+ && rm -rf /var/lib/apt/lists/*
 
-# Install required packages including X11, VNC, and noVNC dependencies
-RUN apt-get update && apt-get install -y \
-    sudo \
-    wget \
-    default-jdk \
-    vim \
-    unzip \
-    openjdk-11-jdk \
-    git \
-    python3 \
+#==================
+# Configure Python
+#==================
+RUN apt-get -qqy update && \
+    apt-get -qqy --no-install-recommends install \
     python3-pip \
     python3-numpy \
     python3-venv \
-    curl \
-    adb \
-    libqt5webkit5-dev \
-    libgconf-2-4 \
-    libnss3-dev \
-    libxkbcommon-x11-0 \
-    libpulse0 \
-    libasound2 \
-    x11-xserver-utils \
-    libxdamage1 \
-    libxcomposite1 \
-    libxcursor1 \
-    libxi6 \
-    libpcap-dev \
-    libxtst6 \
-    libegl1 \
-    zlib1g-dev \
-    libgl1 \
-    pulseaudio \
-    socat \
-    qemu-kvm \
-    ca-certificates \
-    gnupg \
-    xvfb \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/* \
+  && update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
+
+#===============
+# Expose Ports
+#---------------
+# 4723
+#   Appium port
+# 5554
+#   Emulator port
+# 5555
+#   ADB connection port
+#===============
+EXPOSE 4723 5554 5555
+
+#==================
+# Android Packages
+#==================
+ARG EMULATOR_ANDROID_VERSION=14.0
+ARG EMULATOR_API_LEVEL=34
+ENV EMULATOR_ANDROID_VERSION=${EMULATOR_ANDROID_VERSION} \
+    EMULATOR_API_LEVEL=${EMULATOR_API_LEVEL} \
+    EMULATOR_SYS_IMG=x86_64 \
+    EMULATOR_IMG_TYPE=google_apis \
+    EMULATOR_BROWSER=chrome
+ENV PATH=${PATH}:${ANDROID_HOME}/build-tools
+RUN yes | sdkmanager --licenses \
+ && sdkmanager "platforms;android-${EMULATOR_API_LEVEL}" \
+ "system-images;android-${EMULATOR_API_LEVEL};${EMULATOR_IMG_TYPE};${EMULATOR_SYS_IMG}" "emulator" \
+ && ln -s ${ANDROID_HOME}/emulator/emulator /usr/bin/
+
+#=============
+# UI Packages
+#-------------
+# ffmpeg
+#   Video recorder
+# feh
+#   Screen background
+# libxcomposite-dev
+#   Window System for Emulator
+# menu
+#   Debian menu
+# openbox
+#   Windows manager
+# x11vnc
+#   VNC server
+# xterm
+#   Terminal emulator
+#==================
+RUN apt-get -qqy update && apt-get -qqy install --no-install-recommends \
+    ffmpeg \
+    feh \
+    libxcomposite-dev \
+    menu \
+    openbox \
     x11vnc \
     xterm \
-    fluxbox \
-    novnc \
-    websockify \
-    dnsmasq \
-    && rm -rf /var/lib/apt/lists/*
+ && apt autoremove -y \
+ && apt clean all \
+ && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js 18.x
-RUN mkdir -p /etc/apt/keyrings && \
-    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_18.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
-    apt-get update && \
-    apt-get install -y nodejs && \
-    rm -rf /var/lib/apt/lists/*
+#=======
+# noVNC
+#=======
+ENV NOVNC_VERSION="1.4.0" \
+    WEBSOCKIFY_VERSION="0.11.0" \
+    OPT_PATH="/opt"
+RUN  wget -nv -O noVNC.zip "https://github.com/novnc/noVNC/archive/refs/tags/v${NOVNC_VERSION}.zip" \
+ && unzip -x noVNC.zip \
+ && rm noVNC.zip  \
+ && mv noVNC-${NOVNC_VERSION} ${OPT_PATH}/noVNC \
+ && wget -nv -O websockify.zip "https://github.com/novnc/websockify/archive/refs/tags/v${WEBSOCKIFY_VERSION}.zip" \
+ && unzip -x websockify.zip \
+ && mv websockify-${WEBSOCKIFY_VERSION} ${OPT_PATH}/noVNC/utils/websockify \
+ && rm websockify.zip \
+ && ln ${OPT_PATH}/noVNC/vnc.html ${OPT_PATH}/noVNC/index.html
 
-# Install Android SDK
-RUN mkdir -p ${ANDROID_HOME}/cmdline-tools && \
-    cd ${ANDROID_HOME}/cmdline-tools && \
-    wget -q https://dl.google.com/android/repository/${SDK_VERSION} && \
-    unzip -q ${SDK_VERSION} && \
-    mv cmdline-tools latest && \
-    rm ${SDK_VERSION}
+ENV DISPLAY=:0 \
+    SCREEN_NUMBER=0 \
+    SCREEN_WIDTH=1600 \
+    SCREEN_HEIGHT=900 \
+    SCREEN_DEPTH=24+32 \
+    VNC_PORT=5900 \
+    WEB_VNC_PORT=6080
 
-# Accept licenses before installing SDK packages
-RUN mkdir -p ${ANDROID_HOME}/licenses && \
-    echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > ${ANDROID_HOME}/licenses/android-sdk-license && \
-    echo "84831b9409646a918e30573bab4c9c91346d8abd" > ${ANDROID_HOME}/licenses/android-sdk-preview-license
+EXPOSE 5900 6080
 
-# Install Android SDK packages
-RUN sdkmanager --update
+#==========
+# Copy app
+#==========
+# Base
 
-RUN sdkmanager "platform-tools"
-RUN sdkmanager "platforms;android-33"
-RUN sdkmanager "build-tools;33.0.0"
-RUN sdkmanager "system-images;android-33;google_apis;x86_64"
-RUN sdkmanager "emulator"
+ENV WORK_PATH="/home/androidusr"
 
-# Fix missing emulator
-#RUN sdkmanager --install "system-images;android-29;google_apis;x86" &&     echo "no" | avdmanager create avd -n test_device -k "system-images;android-29;google_apis;x86" -d pixel
+COPY run.sh ${WORK_PATH}/
+RUN chmod 760 ${WORK_PATH}/run.sh
 
-# Create AVD
-RUN echo "no" | avdmanager create avd \
-    --name "test_device" \
-    --package "system-images;android-33;google_apis;x86_64" \
-    --device "pixel_4"
+# Appium
+COPY appium ${WORK_PATH}/appium 
+COPY server ${WORK_PATH}/server
+RUN chown -R 1300:1301 ${WORK_PATH}/appium ${WORK_PATH}/server ${WORK_PATH}/run.sh
 
-# Install Appium and UiAutomator2 driver
-RUN npm install -g appium@2.12.1 && \
-    appium driver install uiautomator2
+RUN python3 -m venv ${WORK_PATH}/venv 
+RUN ${WORK_PATH}/venv/bin/pip install -r ${WORK_PATH}/appium/requirements.txt && \
+${WORK_PATH}/venv/bin/pip install -r ${WORK_PATH}/server/requirements.txt
 
-RUN npm install @appium/doctor -g
+#==================
+# Use created user
+#==================
+USER 1300:1301
+ENV LOG_PATH=${WORK_PATH}/logs \
+    WEB_LOG_PORT=9000
+EXPOSE 9000
+RUN mkdir -p ${LOG_PATH}
+RUN mkdir -p "${WORK_PATH}/.config/Android Open Source Project" \
+ && echo "[General]\nshowNestedWarning=false\n" > "${WORK_PATH}/.config/Android Open Source Project/Emulator.conf"
 
-# Create a non-root user
-RUN useradd -m -d /home/appium -s /bin/bash appium && \
-    usermod -aG sudo appium && \
-    echo 'appium ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-
-# Set VNC password
-RUN mkdir -p /home/appium/.vnc && \
-    x11vnc -storepasswd android /home/appium/.vnc/passwd
-
-# Set up noVNC
-RUN ln -s /usr/share/novnc/vnc.html /usr/share/novnc/index.html
-
-COPY appium/* /home/appium/
-
-RUN mkdir -p /home/appium/server
-COPY server/* /home/appium/server/
-
-# Set working directory
-WORKDIR /home/appium
-
-#COPY ./server /home/appium/server
-#RUN cd /home/appium/server && pip install -r requirements.txt
-
-# Copy startup script
-COPY start-services.sh /home/appium/
-RUN chmod +x /home/appium/start-services.sh && \
-    chown -R appium:appium /home/appium && \
-    chown -R appium:appium /home/appium/.vnc && \
-    chown -R appium:appium ${ANDROID_HOME}
-
-# Set net admin capabilities for python
-#RUN setcap cap_net_raw,cap_net_admin=eip /usr/bin/python3.10
-
-# Add appium to groups
-RUN usermod -aG render,kvm,sudo appium
-
-# Set up dnsmasq
-COPY server/dnsmasq.conf /etc/dnsmasq.conf
-
-USER appium
-
-# Expose ports for Appium, VNC, and noVNC
-EXPOSE 4723 5900 6080 8080
-
-CMD ["/home/appium/start-services.sh"]
+#=========
+# Run App
+#=========
+STOPSIGNAL SIGTERM
+ENV DEVICE_TYPE=emulator
+ENTRYPOINT ["/home/androidusr/run.sh"]
