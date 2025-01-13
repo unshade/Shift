@@ -26,7 +26,6 @@ options.load_capabilities({
     "appium:ensureWebviewsHavePages": True,
     "appium:nativeWebScreenshot": True,
     "appium:newCommandTimeout": 3600,
-    "appium:connectHardwareKeyboard": True
 })
 
 driver = webdriver.Remote("http://127.0.0.1:4723", options=options)
@@ -110,13 +109,11 @@ try:
     ok_button.click()
 
     # Navigate back
-    for _ in range(2):
-        back_button = appium_wait.until(EC.element_to_be_clickable(
-                (AppiumBy.ACCESSIBILITY_ID, "Back")
-            ))
-        back_button.click()
 
     driver.back()
+    driver.back()
+    driver.back()
+
 
     backup_button = appium_wait.until(EC.element_to_be_clickable(
         (AppiumBy.ACCESSIBILITY_ID, "Backup")

@@ -41,6 +41,25 @@ done
 
 adb shell cmd bluetooth_manager disable
 
+adb root
+
+adb remount
+
+adb reboot
+
+adb wait-for-device
+
+A=$(adb shell getprop sys.boot_completed | tr -d '\r')
+while [ "$A" != "1" ]; do
+    echo "Waiting for emulator to boot..."
+    sleep 2
+    A=$(adb shell getprop sys.boot_completed | tr -d '\r')
+done
+
+adb root
+
+adb remount
+
 echo "Emulator booted"
 
 /usr/bin/appium &
@@ -54,6 +73,8 @@ export STAGE="CI"
 echo "Starting the server (logs are saved in /home/androidusr/server/logs.txt)"
 cd /home/androidusr/server
 sudo -E /home/androidusr/venv/bin/python /home/androidusr/server/manager.py run_servers immich >> /home/androidusr/server/logs.txt 2>&1 &
+adb push /etc/hosts /etc/hosts
+adb push /etc/hosts /system/etc/hosts
 echo "Starting appium automation"
 cd /home/androidusr/appium
 /home/androidusr/venv/bin/python /home/androidusr/appium/immich.py /home/androidusr/appium/immich_x86.apk
