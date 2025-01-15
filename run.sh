@@ -69,12 +69,4 @@ while ! nc -z localhost 4723; do
 done
 echo "Appium started"
 
-export STAGE="CI"
-echo "Starting the server (logs are saved in /home/androidusr/server/logs.txt)"
-cd /home/androidusr/server
-sudo -E /home/androidusr/venv/bin/python /home/androidusr/server/manager.py run_servers immich >> /home/androidusr/server/logs.txt 2>&1 &
-adb push /etc/hosts /etc/hosts
-adb push /etc/hosts /system/etc/hosts
-echo "Starting appium automation"
-cd /home/androidusr/appium
-/home/androidusr/venv/bin/python /home/androidusr/appium/immich.py /home/androidusr/appium/immich_x86.apk
+tail -f /dev/null
