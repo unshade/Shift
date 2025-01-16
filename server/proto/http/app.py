@@ -17,7 +17,7 @@ apk_name = ''
 testsuite: ET.Element = None
 
 
-def save_packet(request_data, response_data):
+def save_packet(request_data, response_data, packet):
     """
     Save packet data to a JSON file, filtering fields based on a predefined schema.
 
@@ -47,6 +47,13 @@ def save_packet(request_data, response_data):
         json.dump(packet_data, f, ensure_ascii=False, indent=4)
 
     print(f"Packet saved to: {file_path}")
+
+    file_path = os.path.join(path, 'http.pcap')
+    # Save pak to pcap file (append)
+
+    wrpcap(file_path, packet, append=True)
+
+    print(f"Packet pcap updated to: {file_path}")
 
 
 request_data = None
@@ -88,7 +95,7 @@ def packet_callback(pak: Packet):
                 response_data['body'] = pak[Raw].load.decode()
             except UnicodeDecodeError:
                 response_data['body'] = "Unable to decode payload"
-        save_packet(request_data, response_data)
+        save_packet(request_data, response_data, pak)
         request_data = None
 
 def start_capture():
