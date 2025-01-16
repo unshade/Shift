@@ -44,6 +44,9 @@ class PacketMatcher:
             with open(report_path, 'w', encoding='utf-8') as f:
                 f.write(pretty_xml_as_string)
             print(f'JUnit report generated at {report_path}')
+            # also write it in the root of the project and name it "junit_report.xml"
+            with open('junit_report.xml', 'w', encoding='utf-8') as f:
+                f.write(pretty_xml_as_string)
             return -1
 
         original_packet = self.packets[self.request_number]
