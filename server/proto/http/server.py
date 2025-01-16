@@ -3,9 +3,16 @@ import json
 import xml.etree.ElementTree as ET
 import xml.dom.minidom as minidom
 from datetime import datetime
+from scapy.all import wrpcap
+
 
 from flask import Flask, request, jsonify
 import logging
+
+from scapy.layers.http import HTTP, HTTPRequest, HTTPResponse
+from scapy.layers.inet import IP, TCP
+from scapy.layers.l2 import Ether
+from scapy.packet import Raw
 
 from proto.http.app import apk_name
 from proto.http.http_request_packet import HttpRequestPacket
@@ -140,6 +147,8 @@ class PacketMatcher:
         print(f"Packet saved to: {file_path}")
 
 
+
+
     def load_packets(self, directory):
         """
         Load all JSON packet files from the specified directory.
@@ -194,10 +203,36 @@ def create_app(packet_directory, app_name):
 
         response = packet_matcher.compare_packets(incoming_request)
 
+        pcap_file_path = os.path.join(packet_matcher.compare_path, 'http.pcap')
+        request_packet = Ether() / IP(src=incoming_request['source_ip'], dst=incoming_request['destination_ip']) / \
+                         TCP(sport=int(incoming_request['source_port']),
+                             dport=int(incoming_request['destination_port'])) / \
+                         HTTP() / \
+                         HTTPRequest(
+                             Method=incoming_request['method'].encode(),
+                             Path=incoming_request['path'].encode(),
+                             Http_Version=b"HTTP/1.1",
+                         ) / \
+                         Raw(load=incoming_request.get('body', '').encode())
+        wrpcap(pcap_file_path, request_packet, append=True)
+
+        print(f"Packet pcap updated to: {pcap_file_path}")
+
         if response == -1:
             os._exit(0)
 
         if response:
+            print(f"Response: {response}")
+            response_packet = Ether() / IP(src=response['source_ip'], dst=response['destination_ip']) / \
+                              TCP(sport=int(response['source_port']), dport=int(response['destination_port'])) / \
+                              HTTP() / \
+                              HTTPResponse(
+                                  Status_Code=response['status_code'].encode(),
+                                  Reason_Phrase=response['reason_phrase'].encode(),
+                                  Http_Version=b"HTTP/1.1",
+                              ) / \
+                              Raw(load=response.get('body', '').encode())
+            wrpcap(pcap_file_path, response_packet, append=True)
             return jsonify(response)
 
         return jsonify({"error": "No matching packet found"}), 404
