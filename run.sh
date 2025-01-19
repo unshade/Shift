@@ -68,3 +68,5 @@ while ! nc -z localhost 4723; do
     sleep 2
 done
 echo "Appium started"
+
+/bin/bash
