@@ -2,6 +2,8 @@ import multiprocessing
 import shutil
 import argparse
 import os
+import json
+
 from proto.http.app import run_http
 from proto.http.server import run_server
 
@@ -34,6 +36,19 @@ def clear_all():
     shutil.rmtree('./resources')
     return "Cleared every datas"
 
+def update_hosts(packet_directory, host='0.0.0.0'):
+    packet_directory = "resources/http/"+packet_directory
+
+    pkt = os.listdir(packet_directory)
+    pkt.remove("diff")
+    with open(packet_directory + '/' + pkt[0], 'r') as f:
+        packet = json.load(f)
+    domain = packet['request']['headers']['Host']
+    print(f"Setting up domain: {domain}")
+    with open('/etc/hosts', 'w') as f:
+        f.write(f'{host} {domain}\n')
+        f.write(f'{host} www.{domain}\n')
+
 if __name__ == '__main__':
     # create if not exist directory ./resources
     if not os.path.exists('./resources'):
@@ -46,6 +61,9 @@ if __name__ == '__main__':
     run_servers_parser = subparsers.add_parser("run_servers")
     run_servers_parser.add_argument("app_name", help="Name of the app to run services for")
 
+    update_hosts_parser = subparsers.add_parser("update_hosts")
+    update_hosts_parser.add_argument("app_name", help="Name of the app to update hosts for")
+
     clear_all_parser = subparsers.add_parser("clear_all")
 
     args = parser.parse_args()
@@ -54,5 +72,7 @@ if __name__ == '__main__':
         run_servers(args.app_name)
     elif args.command == "clear_all":
         print(clear_all())
+    elif args.command == "update_hosts":
+        update_hosts(args.app_name)
     else:
         parser.print_help()
