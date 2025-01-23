@@ -36,7 +36,7 @@ def clear_all():
     shutil.rmtree('./resources')
     return "Cleared every datas"
 
-def update_hosts(packet_directory, host='0.0.0.0'):
+def update_hosts(packet_directory, host='127.0.0.1'):
     packet_directory = "resources/http/"+packet_directory
 
     pkt = os.listdir(packet_directory)
@@ -49,6 +49,7 @@ def update_hosts(packet_directory, host='0.0.0.0'):
     domain = packet['request']['headers']['Host']
     print(f"Setting up domain: {domain}")
     with open('/etc/hosts', 'w') as f:
+        f.write('127.0.0.1 localhost\n')
         f.write(f'{host} {domain}\n')
         f.write(f'{host} www.{domain}\n')
 
