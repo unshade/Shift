@@ -156,4 +156,5 @@ RUN mkdir -p "${WORK_PATH}/.config/Android Open Source Project" \
 #=========
 STOPSIGNAL SIGTERM
 ENV DEVICE_TYPE=emulator
-ENTRYPOINT ["/home/androidusr/run.sh"]
+
+CMD ["/bin/bash"]

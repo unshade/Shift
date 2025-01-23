@@ -1,8 +1,0 @@
-{
-  "request": {
-    "destination_port" : true
-  },
-  "response": {
-    "status_code": true
-  }
-}
