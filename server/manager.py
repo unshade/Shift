@@ -35,6 +35,9 @@ def clear_all():
     return "Cleared every datas"
 
 if __name__ == '__main__':
+    # create if not exist directory ./resources
+    if not os.path.exists('./resources'):
+        os.makedirs('./resources')
     # Create directory for storing captured packets
     parser = argparse.ArgumentParser(prog="manager", description="Manager for running services")
     parser.add_argument("--version", action="version", version="v1.0.0")
