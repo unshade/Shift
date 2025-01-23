@@ -9,6 +9,9 @@ def filter_data_by_schema(data, schema):
     if not isinstance(data, dict):
         return data
 
+    if not isinstance(schema, dict):
+        return data
+
     filtered_data = {}
     for key, value in schema.items():
         if key in data:
