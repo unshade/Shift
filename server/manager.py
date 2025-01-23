@@ -48,7 +48,8 @@ def update_hosts(packet_directory, host='127.0.0.1'):
         packet = json.load(f)
     domain = packet['request']['headers']['Host']
     print(f"Setting up domain: {domain}")
-    with open('/etc/hosts', 'a') as f:
+    with open('/etc/hosts', 'w') as f:
+        f.write(f'127.0.0.1 localhost\n')
         f.write(f'{host} {domain}\n')
         f.write(f'{host} www.{domain}\n')
 
