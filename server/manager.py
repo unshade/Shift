@@ -40,7 +40,10 @@ def update_hosts(packet_directory, host='0.0.0.0'):
     packet_directory = "resources/http/"+packet_directory
 
     pkt = os.listdir(packet_directory)
-    pkt.remove("diff")
+    try:
+        pkt.remove("diff")
+    except ValueError:
+        pass
     with open(packet_directory + '/' + pkt[0], 'r') as f:
         packet = json.load(f)
     domain = packet['request']['headers']['Host']

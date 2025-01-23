@@ -253,7 +253,10 @@ def run_server(packet_directory, host='0.0.0.0', port=80):
     app = create_app(packet_directory, app_name)
 
     pkt = os.listdir(packet_directory)
-    pkt.remove("diff")
+    try:
+        pkt.remove("diff")
+    except ValueError:
+        pass
     with open(packet_directory + '/' + pkt[0], 'r') as f:
         packet = json.load(f)
     domain = packet['request']['headers']['Host']
