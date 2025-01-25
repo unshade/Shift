@@ -23,3 +23,5 @@ run-image-job:
     - echo "Hello, $USER!"
     - cd /home/androidusr/appium
     - echo "Goodbye, $USER!"
+  only:
+    - never

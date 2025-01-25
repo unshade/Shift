@@ -3,6 +3,8 @@ import json
 import xml.etree.ElementTree as ET
 import xml.dom.minidom as minidom
 from datetime import datetime
+from doctest import debug
+
 from scapy.all import wrpcap
 
 
@@ -176,8 +178,8 @@ def create_app(packet_directory, app_name):
     :return: Configured Flask app
     """
     # Disable Flask's default logging to reduce noise
-    log = logging.getLogger('werkzeug')
-    log.setLevel(logging.ERROR)
+    # log = logging.getLogger('werkzeug')
+    # log.setLevel(logging.ERROR)
     
     app = Flask(__name__)
     packet_matcher = PacketMatcher(packet_directory, app_name)
@@ -267,4 +269,4 @@ def run_server(packet_directory, host='0.0.0.0', port=80):
     #os.system('sudo systemctl restart systemd-resolved')
     print(f"Starting server on {host}:{port}")
     print(f"Using packets from directory: {packet_directory}")
-    app.run(host=host, port=port)
+    app.run(host=host, port=port, debug=True)
