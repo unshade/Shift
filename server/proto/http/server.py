@@ -157,7 +157,8 @@ class PacketMatcher:
         
         :param directory: Path to the directory containing packet JSON files
         """
-        for filename in os.listdir(directory):
+        files = sorted(os.listdir(directory))
+        for filename in files:
             if filename.endswith('.json'):
                 filepath = os.path.join(directory, filename)
                 try:
