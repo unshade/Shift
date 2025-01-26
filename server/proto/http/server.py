@@ -226,7 +226,7 @@ def create_app(packet_directory, app_name):
             wrpcap(pcap_file_path, response_packet, append=True)
             flask_response = Response(response['body'])
             for header, value in response['headers'].items():
-                flask_response.headers[header] = value
+                flask_response.headers[header.replace('_', '-')] = value
             return flask_response
         return jsonify({"error": "No matching packet found"}), 404
 
