@@ -1,27 +1,21 @@
-import os
 import json
-import xml.etree.ElementTree as ET
+import os
 import xml.dom.minidom as minidom
+import xml.etree.ElementTree as ET
 from datetime import datetime
-from doctest import debug
-
-from scapy.all import wrpcap
-
 
 from flask import Flask, request, jsonify
-import logging
-
+from flask import Response
+from scapy.all import wrpcap
 from scapy.layers.http import HTTP, HTTPRequest, HTTPResponse
 from scapy.layers.inet import IP, TCP
 from scapy.layers.l2 import Ether
 from scapy.packet import Raw
 
-from proto.http.app import apk_name
 from proto.http.http_request_packet import HttpRequestPacket
 from proto.http.http_response_packet import HttpResponsePacket
 from services.dict_utils import arrange_differences
 from services.file_service import load_schema
-from services.schema_filter import filter_data_by_schema
 from services.xml_utils import json_to_xml
 
 
@@ -39,8 +33,6 @@ class PacketMatcher:
         self.testsuite = ET.Element('testsuite', name='HTTP Request Comparison', tests=str(len(self.packets)))
         self.compare_path = os.path.join(os.getcwd(), 'resources/http', self.apk_name, 'diff', str(datetime.now()))
         os.makedirs(self.compare_path, exist_ok=True)
-
-
 
     def compare_packets(self, incoming_request):
         if self.request_number >= len(self.packets):
@@ -120,7 +112,6 @@ class PacketMatcher:
         self.save_packet(original_request.to_dict(), response.to_dict())
         return response.to_dict()
 
-
     def save_packet(self, request_data, response_data):
         """
         Save packet data to a JSON file, filtering fields based on a predefined schema.
@@ -148,9 +139,6 @@ class PacketMatcher:
 
         print(f"Packet saved to: {file_path}")
 
-
-
-
     def load_packets(self, directory):
         """
         Load all JSON packet files from the specified directory.
@@ -167,8 +155,9 @@ class PacketMatcher:
                         self.packets.append(packet)
                 except Exception as e:
                     print(f"Error loading packet {filename}: {e}")
-        
+
         print(f"Loaded {len(self.packets)} packets")
+
 
 def create_app(packet_directory, app_name):
     """
@@ -181,7 +170,6 @@ def create_app(packet_directory, app_name):
     # Disable Flask's default logging to reduce noise
     # log = logging.getLogger('werkzeug')
     # log.setLevel(logging.ERROR)
-    
     app = Flask(__name__)
     packet_matcher = PacketMatcher(packet_directory, app_name)
 
@@ -236,10 +224,12 @@ def create_app(packet_directory, app_name):
                               ) / \
                               Raw(load=response.get('body', '').encode())
             wrpcap(pcap_file_path, response_packet, append=True)
-            return jsonify(response)
-
+            flask_response = Response(response['body'])
+            for header, value in response['headers'].items():
+                flask_response.headers[header] = value
+            return flask_response
         return jsonify({"error": "No matching packet found"}), 404
-    
+
     return app
 
 
@@ -252,7 +242,7 @@ def run_server(packet_directory, host='0.0.0.0', port=80):
     :param port: Port to run the server on (default: 80)
     """
     app_name = packet_directory
-    packet_directory = "resources/http/"+packet_directory
+    packet_directory = "resources/http/" + packet_directory
     app = create_app(packet_directory, app_name)
 
     pkt = os.listdir(packet_directory)
@@ -267,7 +257,7 @@ def run_server(packet_directory, host='0.0.0.0', port=80):
     with open('/etc/hosts', 'w') as f:
         f.write(f'{host} {domain}\n')
         f.write(f'{host} www.{domain}\n')
-    #os.system('sudo systemctl restart systemd-resolved')
+    # os.system('sudo systemctl restart systemd-resolved')
     print(f"Starting server on {host}:{port}")
     print(f"Using packets from directory: {packet_directory}")
     app.run(host=host, port=port, debug=True)

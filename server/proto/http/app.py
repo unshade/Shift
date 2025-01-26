@@ -1,7 +1,4 @@
-import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
-from os import listdir
-from os.path import isfile, join
 
 from scapy.all import *
 from scapy.layers.http import HTTPRequest, HTTPResponse
@@ -98,8 +95,10 @@ def packet_callback(pak: Packet):
         save_packet(request_data, response_data, pak)
         request_data = None
 
+
 def start_capture():
     sniff(filter="tcp port 80", prn=packet_callback, store=0)
+
 
 def run_http(app_name: str):
     resources_dir = os.path.join(os.getcwd(), 'resources/http')
