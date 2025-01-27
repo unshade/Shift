@@ -35,7 +35,7 @@ class PacketMatcher:
         os.makedirs(self.compare_path, exist_ok=True)
 
     def compare_packets(self, incoming_request):
-        if self.request_number >= len(self.packets):
+        if not self.packets:
             print("All requests compared")
             rough_string = ET.tostring(self.testsuite, 'utf-8')
             beautified = minidom.parseString(rough_string)
@@ -50,7 +50,17 @@ class PacketMatcher:
                 f.write(pretty_xml_as_string)
             return -1
 
-        original_packet = self.packets[self.request_number]
+        packet_number = -1
+        for i, packet in enumerate(self.packets):
+            if packet['request']['method'] == incoming_request['method'] and packet['request']['path'] == incoming_request['path']:
+                packet_number = i
+                break
+
+        if packet_number == -1:
+            print("No matching packet found")
+            return None
+
+        original_packet = self.packets.pop(packet_number)
 
         testcase = ET.Element('testcase', name=f'Request {self.request_number + 1}')
         schema = load_schema(self.apk_name)
