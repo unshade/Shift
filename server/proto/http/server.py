@@ -150,7 +150,7 @@ class PacketMatcher:
             if filename.endswith('.json'):
                 filepath = os.path.join(directory, filename)
                 try:
-                    with open(filepath, 'r') as f:
+                    with open(filepath, 'r', encoding='utf-8') as f:
                         packet = json.load(f)
                         self.packets.append(packet)
                 except Exception as e:
@@ -225,8 +225,36 @@ def create_app(packet_directory, app_name):
                               Raw(load=response.get('body', '').encode())
             wrpcap(pcap_file_path, response_packet, append=True)
             flask_response = Response(response['body'])
+            flask_response.status_code = int(response['status_code'])
             for header, value in response['headers'].items():
-                flask_response.headers[header.replace('_', '-')] = value
+                if header == "Transfer_Encoding":
+                    continue
+                elif header == "Unknown_Headers":
+                    for h, v in value.items():
+                        flask_response.headers[h.replace('_', '-')] = v
+                elif header == 'Set-Cookie' or header == 'Set_Cookie':
+                    for cookie in value.split('§'):
+                        cookie = cookie.strip()
+                        cookie_name = cookie.split('=')[0]
+                        cookie_value = cookie.split('=')[1]
+                        if ';' in cookie_value:
+                            cookie_value = cookie_value.split(';')[0]
+
+                        expire_date = cookie.split('Expires=')[1]
+                        expire_date = expire_date.split(';')[0]
+                        expire_date = datetime.strptime(expire_date, '%a, %d %b %Y %H:%M:%S %Z')
+
+                        max_age = cookie.split('Max-Age=')[1]
+                        max_age = max_age.split(';')[0]
+                        max_age = int(max_age)
+
+                        same_site = cookie.split('SameSite=')[1]
+                        same_site = same_site.split(';')[0]
+
+                        flask_response.set_cookie(cookie_name, cookie_value, expires=expire_date, max_age=max_age,
+                                                  samesite=same_site, httponly=('HttpOnly' in cookie))
+                else:
+                    flask_response.headers[header.replace('_', '-')] = value
             return flask_response
         return jsonify({"error": "No matching packet found"}), 404
 
