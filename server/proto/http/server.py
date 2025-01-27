@@ -2,6 +2,7 @@ import json
 import os
 import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
+from copy import deepcopy
 from datetime import datetime
 
 from flask import Flask, request, jsonify
@@ -34,20 +35,34 @@ class PacketMatcher:
         self.compare_path = os.path.join(os.getcwd(), 'resources/http', self.apk_name, 'diff', str(datetime.now()))
         os.makedirs(self.compare_path, exist_ok=True)
 
+    def save_junit_report(self):
+        # Add every missing packet as a failed test for now
+        current_testsuite = deepcopy(self.testsuite)
+        request_number = self.request_number + 1
+        for packet in self.packets:
+            testcase = ET.Element('testcase', name=f'Request {request_number}')
+            failure = ET.Element('failure', message='Automation did not reach this request')
+            failure.append(json_to_xml(packet['request'], initial_name='original'))
+            testcase.append(failure)
+            current_testsuite.append(testcase)
+            request_number += 1
+
+        rough_string = ET.tostring(current_testsuite, 'utf-8')
+        beautified = minidom.parseString(rough_string)
+        pretty_xml_as_string = beautified.toprettyxml(indent="  ")
+
+        report_path = os.path.join(self.compare_path, 'junit_report.xml')
+        with open(report_path, 'w', encoding='utf-8') as f:
+            f.write(pretty_xml_as_string)
+        print(f'Current JUnit report generated at {report_path}')
+        # also write it in the root of the project and name it "junit_report.xml"
+        with open('junit_report.xml', 'w', encoding='utf-8') as f:
+            f.write(pretty_xml_as_string)
+
     def compare_packets(self, incoming_request):
         if not self.packets:
             print("All requests compared")
-            rough_string = ET.tostring(self.testsuite, 'utf-8')
-            beautified = minidom.parseString(rough_string)
-            pretty_xml_as_string = beautified.toprettyxml(indent="  ")
-
-            report_path = os.path.join(self.compare_path, 'junit_report.xml')
-            with open(report_path, 'w', encoding='utf-8') as f:
-                f.write(pretty_xml_as_string)
-            print(f'JUnit report generated at {report_path}')
-            # also write it in the root of the project and name it "junit_report.xml"
-            with open('junit_report.xml', 'w', encoding='utf-8') as f:
-                f.write(pretty_xml_as_string)
+            self.save_junit_report()
             return -1
 
         packet_number = -1
@@ -106,6 +121,7 @@ class PacketMatcher:
             failure.append(json_to_xml(diff, initial_name='diff'))
             testcase.append(failure)
         self.testsuite.append(testcase)
+        self.save_junit_report()
 
         self.request_number += 1
 
@@ -265,6 +281,7 @@ def create_app(packet_directory, app_name):
                 else:
                     flask_response.headers[header.replace('_', '-')] = value
             return flask_response
+
         return jsonify({"error": "No matching packet found"}), 404
 
     return app
