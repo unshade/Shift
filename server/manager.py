@@ -48,10 +48,18 @@ def update_hosts(packet_directory, host='127.0.0.1'):
         packet = json.load(f)
     domain = packet['request']['headers']['Host']
     print(f"Setting up domain: {domain}")
+
+    last = None
+    with open('/etc/hosts', 'r') as f:
+        for line in f:
+            last = line
+
     with open('/etc/hosts', 'w') as f:
         f.write(f'127.0.0.1 localhost\n')
         f.write(f'{host} {domain}\n')
         f.write(f'{host} www.{domain}\n')
+        if last is not None:
+            f.write(last)
 
 if __name__ == '__main__':
     # create if not exist directory ./resources
