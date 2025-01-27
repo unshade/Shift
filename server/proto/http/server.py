@@ -282,6 +282,15 @@ def create_app(packet_directory, app_name):
                     flask_response.headers[header.replace('_', '-')] = value
             return flask_response
 
+        # Add failure to JUnit report
+        testcase = ET.Element('testcase', name=f'Alleged request {packet_matcher.request_number + 1}')
+        failure = ET.Element('failure', message='No matching request found')
+        failure.append(json_to_xml(incoming_request, initial_name='new'))
+        testcase.append(failure)
+        packet_matcher.testsuite.append(testcase)
+        packet_matcher.save_junit_report()
+
+
         return jsonify({"error": "No matching packet found"}), 404
 
     return app
