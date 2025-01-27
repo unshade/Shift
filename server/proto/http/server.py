@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 
 from flask import Flask, request, jsonify
-from flask import Response
+from flask import Response, make_response
 from scapy.all import wrpcap
 from scapy.layers.http import HTTP, HTTPRequest, HTTPResponse
 from scapy.layers.inet import IP, TCP
@@ -213,7 +213,6 @@ def create_app(packet_directory, app_name):
             os._exit(0)
 
         if response:
-            print(f"Response: {response}")
             response_packet = Ether() / IP(src=response['source_ip'], dst=response['destination_ip']) / \
                               TCP(sport=int(response['source_port']), dport=int(response['destination_port'])) / \
                               HTTP() / \
@@ -224,10 +223,10 @@ def create_app(packet_directory, app_name):
                               ) / \
                               Raw(load=response.get('body', '').encode())
             wrpcap(pcap_file_path, response_packet, append=True)
-            flask_response = Response(response['body'])
+            flask_response = make_response(response['body'])
             flask_response.status_code = int(response['status_code'])
             for header, value in response['headers'].items():
-                if header == "Transfer_Encoding":
+                if header == "Transfer_Encoding" or header == "Content_Encoding" or header == "Content_Length":
                     continue
                 elif header == "Unknown_Headers":
                     for h, v in value.items():
