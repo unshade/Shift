@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 
 from scapy.all import *
-from scapy.layers.http import HTTPRequest, HTTPResponse
+from scapy.layers.http import HTTPRequest, HTTPResponse, HTTP
 from scapy.layers.inet import TCP, IP
 
 from proto.http.request_service import decode_headers
@@ -96,8 +96,11 @@ def packet_callback(pak: Packet):
         request_data = None
 
 
-def start_capture():
-    sniff(filter="tcp port 80", prn=packet_callback, store=0)
+def start_capture(port=8000):
+    # Bind layers
+    bind_layers(TCP, HTTP, sport=port)
+    bind_layers(TCP, HTTP, dport=port)
+    sniff(filter=f"tcp port {port}", prn=packet_callback, store=0)
 
 
 def run_http(app_name: str):
