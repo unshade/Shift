@@ -25,7 +25,7 @@ class PacketMatcher:
     def __init__(self, packet_directory, apk_name):
         """
         Initialize the packet matcher with packets from a given directory.
-        
+
         :param packet_directory: Directory containing JSON packet files
         """
         self.apk_name = apk_name
@@ -169,7 +169,7 @@ class PacketMatcher:
     def load_packets(self, directory):
         """
         Load all JSON packet files from the specified directory.
-        
+
         :param directory: Path to the directory containing packet JSON files
         """
         files = sorted(os.listdir(directory))
@@ -189,7 +189,7 @@ class PacketMatcher:
 def create_app(packet_directory, app_name):
     """
     Create and configure the Flask application.
-    
+
     :param packet_directory: Directory containing JSON packet files
     :param app_name: Name of the application
     :return: Configured Flask app
@@ -204,7 +204,7 @@ def create_app(packet_directory, app_name):
     def catch_all():
         """
         Catch-all route to match any incoming request against pre-recorded packets.
-        
+
         :return: Matched response or 404
         """
         incoming_request = {
@@ -250,6 +250,18 @@ def create_app(packet_directory, app_name):
                               ) / \
                               Raw(load=response.get('body', '').encode())
             wrpcap(pcap_file_path, response_packet, append=True)
+
+            # Separate case if the response is an image
+            if response['headers'].get('Content_Type', 'text/plain').startswith('image'):
+                from io import BytesIO
+                from flask import send_file
+
+                #image_data = base64.b64decode(response['body'])
+                image_data = response['body'].encode()
+                image = BytesIO(image_data)
+
+                return send_file(image, mimetype=response['headers'].get('Content_Type', 'image/png'))
+
             flask_response = make_response(response['body'])
             flask_response.content_type = response['headers'].get('Content_Type', 'text/plain')
             flask_response.status_code = int(response['status_code'])
@@ -302,7 +314,7 @@ def create_app(packet_directory, app_name):
 def run_server(packet_directory, host='0.0.0.0', port=80):
     """
     Run the Flask server with pre-recorded packets.
-    
+
     :param packet_directory: Directory containing JSON packet files
     :param host: Host to bind the server to (default: 0.0.0.0)
     :param port: Port to run the server on (default: 80)

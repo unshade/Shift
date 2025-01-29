@@ -117,9 +117,9 @@ def packet_callback(pak: Packet):
             response_body = tcp_streams[stream_key]["response_body"]
 
             response_body_decoded = response_body.decode(errors='ignore')
-            print(response_body_decoded)
             response_headers = tcp_streams[stream_key]["response_headers"]
             response_headers['Content-Length'] = len(response_body_decoded)
+
             response_headers['body'] = response_body_decoded
 
             save_packet(tcp_streams[stream_key]["request"], response_headers, tcp_streams[stream_key]["packets"])
