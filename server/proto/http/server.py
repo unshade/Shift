@@ -182,18 +182,16 @@ class PacketMatcher:
         """
         Load all JSON packet files from the specified directory.
         """
-        files = sorted(os.listdir(directory))
-        for filename in files:
-            if filename.endswith('.json'):
-                filepath = os.path.join(directory, filename)
-                try:
-                    with open(filepath, 'r', encoding='utf-8') as f:
-                        packet = json.load(f)
-                        self.packets.append(packet)
-                except Exception as e:
-                    print(f"Error loading packet {filename}: {e}")
-
-        print(f"Loaded {len(self.packets)} packets")
+        file_name = "packets.json"
+        filepath = os.path.join(directory, file_name)
+        if os.path.exists(filepath):
+            with open(filepath, 'r', encoding='utf-8') as f:
+                packets_loaded = json.load(f)
+                for packet in packets_loaded:
+                    self.packets.append(packet)
+                print(f"Loaded {len(self.packets)} packets from {filepath}")
+        else:
+            print(f"No packets found in {directory}. There should be a file named {file_name} with packets.")
 
 
 def create_app(packet_directory, app_name):
@@ -338,13 +336,6 @@ def run_server(packet_directory, host='0.0.0.0', port=80):
         pkt.remove("diff")
     except ValueError:
         pass
-    with open(packet_directory + '/' + pkt[0], 'r') as f:
-        packet = json.load(f)
-    domain = packet['request']['headers']['Host']
-    print(f"Setting up domain: {domain}")
-    with open('/etc/hosts', 'w') as f:
-        f.write(f'{host} {domain}\n')
-        f.write(f'{host} www.{domain}\n')
     print(f"Starting server on {host}:{port}")
     print(f"Using packets from directory: {packet_directory}")
     app.run(host=host, port=port, debug=True)

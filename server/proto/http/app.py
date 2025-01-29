@@ -67,16 +67,24 @@ def save_packet(request_data, response_data, packets):
     if 'body' in response_data and isinstance(response_data['body'], (bytes, bytearray)):
         response_data['body'] = process_response_body(response_data['body'], response_data['headers'])
 
-    packet_data = {
-        'request': request_data,
-        'response': response_data
-    }
+    packet_data = []
 
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-    file_name = f"packet_{timestamp}.json"
+    file_name = f"packets.json"
     file_path = os.path.join(path, file_name) if not diff_path else os.path.join(diff_path, file_name)
 
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    if not os.path.isfile(file_path):
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write('[]')
+    else:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            packet_data = json.load(f)
+
+    packet_data.append({
+        'request': request_data,
+        'response': response_data
+    })
 
     with open(file_path, 'w', encoding='utf-8') as f:
         json.dump(packet_data, f, ensure_ascii=False, indent=4)
