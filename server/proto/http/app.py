@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 import os
 import json
+import base64
 from scapy.all import *
 from scapy.layers.http import HTTPRequest, HTTPResponse, HTTP
 from scapy.layers.inet import TCP, IP
@@ -18,16 +19,53 @@ testsuite: ET.Element = None
 tcp_streams = defaultdict(lambda: {"request": None, "response_headers": None, "response_body": b"", "packets": []})
 
 
+def is_binary_content(headers):
+    """
+    Check if the content is likely binary based on Content-Type header
+    """
+    content_type = headers.get('Content-Type', '').lower()
+    if not content_type:
+        content_type = headers.get('Content_Type', '').lower()
+    binary_types = ['image/', 'application/octet-stream', 'audio/', 'video/',
+                    'application/pdf', 'application/zip', 'application/x-binary']
+    return any(binary_type in content_type for binary_type in binary_types)
+
+
+def process_response_body(body, headers):
+    """
+    Process response body based on content type
+    """
+    try:
+        if is_binary_content(headers):
+            # For binary content, encode as base64
+            return {
+                'encoding': 'base64',
+                'data': base64.b64encode(body).decode('utf-8')
+            }
+        else:
+            # For text content, try to decode as UTF-8
+            return {
+                'encoding': 'utf-8',
+                'data': body.decode('utf-8', errors='replace')
+            }
+    except Exception as e:
+        # If we can't determine the type or decode properly, default to base64
+        return {
+            'encoding': 'base64',
+            'data': base64.b64encode(body).decode('utf-8')
+        }
+
+
 def save_packet(request_data, response_data, packets):
     """
-    Save packet data to a JSON file, filtering fields based on a predefined schema.
-
-    :param request_data: Dictionary containing request data
-    :param response_data: Dictionary containing response data
-    :param packets: List of packets associated with the request/response
+    Save packet data to a JSON file, handling binary data appropriately
     """
     global path
     global diff_path
+
+    # Process response body before saving
+    if 'body' in response_data and isinstance(response_data['body'], (bytes, bytearray)):
+        response_data['body'] = process_response_body(response_data['body'], response_data['headers'])
 
     packet_data = {
         'request': request_data,
@@ -85,7 +123,11 @@ def packet_callback(pak: Packet):
                 try:
                     request_data['body'] = pak[Raw].load.decode()
                 except UnicodeDecodeError:
-                    request_data['body'] = "Unable to decode payload"
+                    # If request body is binary, encode it as base64
+                    request_data['body'] = {
+                        'encoding': 'base64',
+                        'data': base64.b64encode(pak[Raw].load).decode('utf-8')
+                    }
             tcp_streams[stream_key]["request"] = request_data
 
         elif pak.haslayer(HTTPResponse):
@@ -103,10 +145,7 @@ def packet_callback(pak: Packet):
             tcp_streams[stream_key]["response_headers"] = response_data
 
             if pak.haslayer(Raw):
-                try:
-                    tcp_streams[stream_key]["response_body"] = pak[Raw].load
-                except UnicodeDecodeError:
-                    tcp_streams[stream_key]["response_body"] = b"Unable to decode payload"
+                tcp_streams[stream_key]["response_body"] = pak[Raw].load
 
         # Check if the TCP stream is ending (FIN flag)
         if pak[TCP].flags.F == 1:
@@ -115,12 +154,9 @@ def packet_callback(pak: Packet):
             print(f"TCP stream ended: {stream_key}")
 
             response_body = tcp_streams[stream_key]["response_body"]
-
-            response_body_decoded = response_body.decode(errors='ignore')
             response_headers = tcp_streams[stream_key]["response_headers"]
-            response_headers['Content-Length'] = len(response_body_decoded)
-
-            response_headers['body'] = response_body_decoded
+            response_headers['Content-Length'] = len(response_body)
+            response_headers['body'] = response_body
 
             save_packet(tcp_streams[stream_key]["request"], response_headers, tcp_streams[stream_key]["packets"])
 

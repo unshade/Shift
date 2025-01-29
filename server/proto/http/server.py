@@ -5,14 +5,15 @@ import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
 from copy import deepcopy
 from datetime import datetime
-
-from flask import Flask, request, jsonify
-from flask import Response, make_response
+import base64
+from flask import Flask, request, jsonify, send_file
+from flask import make_response
 from scapy.all import wrpcap
 from scapy.layers.http import HTTP, HTTPRequest, HTTPResponse
 from scapy.layers.inet import IP, TCP
 from scapy.layers.l2 import Ether
 from scapy.packet import Raw
+from io import BytesIO
 
 from proto.http.http_request_packet import HttpRequestPacket
 from proto.http.http_response_packet import HttpResponsePacket
@@ -23,11 +24,6 @@ from services.xml_utils import json_to_xml
 
 class PacketMatcher:
     def __init__(self, packet_directory, apk_name):
-        """
-        Initialize the packet matcher with packets from a given directory.
-
-        :param packet_directory: Directory containing JSON packet files
-        """
         self.apk_name = apk_name
         self.packets = []
         self.load_packets(packet_directory)
@@ -35,6 +31,22 @@ class PacketMatcher:
         self.testsuite = ET.Element('testsuite', name='HTTP Request Comparison', tests=str(len(self.packets)))
         self.compare_path = os.path.join(os.getcwd(), 'resources/http', self.apk_name, 'diff', str(int(time.time())))
         os.makedirs(self.compare_path, exist_ok=True)
+
+    def decode_body(self, body_data):
+        """
+        Decode body based on its encoding
+        """
+        if isinstance(body_data, dict):
+            encoding = body_data.get('encoding')
+            data = body_data.get('data', '')
+
+            if encoding == 'base64':
+                return base64.b64decode(data)
+            elif encoding == 'utf-8':
+                return data.encode('utf-8')
+            else:
+                return data.encode('utf-8')
+        return body_data.encode('utf-8') if isinstance(body_data, str) else body_data
 
     def save_junit_report(self):
         # Add every missing packet as a failed test for now
@@ -56,7 +68,7 @@ class PacketMatcher:
         with open(report_path, 'w', encoding='utf-8') as f:
             f.write(pretty_xml_as_string)
         print(f'Current JUnit report generated at {report_path}')
-        # also write it in the root of the project and name it "junit_report.xml"
+        # also write it in the root of the project
         with open('junit_report.xml', 'w', encoding='utf-8') as f:
             f.write(pretty_xml_as_string)
 
@@ -169,8 +181,6 @@ class PacketMatcher:
     def load_packets(self, directory):
         """
         Load all JSON packet files from the specified directory.
-
-        :param directory: Path to the directory containing packet JSON files
         """
         files = sorted(os.listdir(directory))
         for filename in files:
@@ -187,26 +197,11 @@ class PacketMatcher:
 
 
 def create_app(packet_directory, app_name):
-    """
-    Create and configure the Flask application.
-
-    :param packet_directory: Directory containing JSON packet files
-    :param app_name: Name of the application
-    :return: Configured Flask app
-    """
-    # Disable Flask's default logging to reduce noise
-    # log = logging.getLogger('werkzeug')
-    # log.setLevel(logging.ERROR)
     app = Flask(__name__)
     packet_matcher = PacketMatcher(packet_directory, app_name)
 
     @app.before_request
     def catch_all():
-        """
-        Catch-all route to match any incoming request against pre-recorded packets.
-
-        :return: Matched response or 404
-        """
         incoming_request = {
             'source_ip': request.remote_addr,
             'destination_ip': request.host,
@@ -240,6 +235,8 @@ def create_app(packet_directory, app_name):
             os._exit(0)
 
         if response:
+            # Create response packet for pcap
+            response_body = packet_matcher.decode_body(response.get('body', ''))
             response_packet = Ether() / IP(src=response['source_ip'], dst=response['destination_ip']) / \
                               TCP(sport=int(response['source_port']), dport=int(response['destination_port'])) / \
                               HTTP() / \
@@ -248,50 +245,71 @@ def create_app(packet_directory, app_name):
                                   Reason_Phrase=response['reason_phrase'].encode(),
                                   Http_Version=b"HTTP/1.1",
                               ) / \
-                              Raw(load=response.get('body', '').encode())
+                              Raw(load=response_body)
             wrpcap(pcap_file_path, response_packet, append=True)
 
-            # Separate case if the response is an image
-            if response['headers'].get('Content_Type', 'text/plain').startswith('image'):
-                from io import BytesIO
-                from flask import send_file
+            content_type = response['headers'].get('Content_Type', 'text/plain')
 
-                #image_data = base64.b64decode(response['body'])
-                image_data = response['body'].encode()
-                image = BytesIO(image_data)
+            # Handle binary content (images, etc.)
+            if content_type.startswith('image/') or 'octet-stream' in content_type:
+                decoded_body = packet_matcher.decode_body(response['body'])
+                return send_file(
+                    BytesIO(decoded_body),
+                    mimetype=content_type
+                )
 
-                return send_file(image, mimetype=response['headers'].get('Content_Type', 'image/png'))
+            # Handle regular responses
+            decoded_body = packet_matcher.decode_body(response['body'])
+            if isinstance(decoded_body, bytes):
+                decoded_body = decoded_body.decode('utf-8', errors='replace')
 
-            flask_response = make_response(response['body'])
-            flask_response.content_type = response['headers'].get('Content_Type', 'text/plain')
+            flask_response = make_response(decoded_body)
+            flask_response.content_type = content_type
             flask_response.status_code = int(response['status_code'])
+
+            # Set headers
             for header, value in response['headers'].items():
-                if header == "Transfer_Encoding" or header == "Content_Encoding" or header == "Content_Length":
+                if header in ["Transfer_Encoding", "Content_Encoding", "Content_Length"]:
                     continue
                 elif header == "Unknown_Headers":
                     for h, v in value.items():
                         flask_response.headers[h.replace('_', '-')] = v
-                elif header == 'Set-Cookie' or header == 'Set_Cookie':
+                elif header in ['Set-Cookie', 'Set_Cookie']:
                     for cookie in value.split('§'):
                         cookie = cookie.strip()
-                        cookie_name = cookie.split('=')[0]
-                        cookie_value = cookie.split('=')[1]
-                        if ';' in cookie_value:
-                            cookie_value = cookie_value.split(';')[0]
+                        if not cookie:
+                            continue
 
-                        expire_date = cookie.split('Expires=')[1]
-                        expire_date = expire_date.split(';')[0]
-                        expire_date = datetime.strptime(expire_date, '%a, %d %b %Y %H:%M:%S %Z')
+                        parts = cookie.split('=', 1)
+                        if len(parts) != 2:
+                            continue
 
-                        max_age = cookie.split('Max-Age=')[1]
-                        max_age = max_age.split(';')[0]
-                        max_age = int(max_age)
+                        cookie_name, rest = parts
+                        cookie_parts = rest.split(';')
+                        cookie_value = cookie_parts[0]
 
-                        same_site = cookie.split('SameSite=')[1]
-                        same_site = same_site.split(';')[0]
+                        kwargs = {}
+                        for part in cookie_parts[1:]:
+                            part = part.strip()
+                            if '=' in part:
+                                k, v = part.split('=', 1)
+                                k = k.lower()
+                                if k == 'expires':
+                                    try:
+                                        kwargs['expires'] = datetime.strptime(v, '%a, %d %b %Y %H:%M:%S %Z')
+                                    except ValueError:
+                                        continue
+                                elif k == 'max-age':
+                                    try:
+                                        kwargs['max_age'] = int(v)
+                                    except ValueError:
+                                        continue
+                                elif k == 'samesite':
+                                    kwargs['samesite'] = v
+                            elif part.lower() == 'httponly':
+                                kwargs['httponly'] = True
 
-                        flask_response.set_cookie(cookie_name, cookie_value, expires=expire_date, max_age=max_age,
-                                                  samesite=same_site, httponly=('HttpOnly' in cookie))
+                        flask_response.set_cookie(cookie_name, cookie_value, **kwargs)
                 else:
                     flask_response.headers[header.replace('_', '-')] = value
 
@@ -305,20 +323,12 @@ def create_app(packet_directory, app_name):
         packet_matcher.testsuite.append(testcase)
         packet_matcher.save_junit_report()
 
-
         return jsonify({"error": "No matching packet found"}), 404
 
     return app
 
 
 def run_server(packet_directory, host='0.0.0.0', port=80):
-    """
-    Run the Flask server with pre-recorded packets.
-
-    :param packet_directory: Directory containing JSON packet files
-    :param host: Host to bind the server to (default: 0.0.0.0)
-    :param port: Port to run the server on (default: 80)
-    """
     app_name = packet_directory
     packet_directory = "resources/http/" + packet_directory
     app = create_app(packet_directory, app_name)
@@ -335,7 +345,6 @@ def run_server(packet_directory, host='0.0.0.0', port=80):
     with open('/etc/hosts', 'w') as f:
         f.write(f'{host} {domain}\n')
         f.write(f'{host} www.{domain}\n')
-    # os.system('sudo systemctl restart systemd-resolved')
     print(f"Starting server on {host}:{port}")
     print(f"Using packets from directory: {packet_directory}")
     app.run(host=host, port=port, debug=True)
