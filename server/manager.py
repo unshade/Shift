@@ -45,8 +45,8 @@ def update_hosts(packet_directory, host='127.0.0.1'):
     except ValueError:
         pass
     with open(packet_directory + '/' + pkt[0], 'r') as f:
-        packet = json.load(f)
-    domain = packet['request']['headers']['Host']
+        packets = json.load(f)
+    domain = packets[0]['request']['headers']['Host']
     print(f"Setting up domain: {domain}")
 
     last = None
