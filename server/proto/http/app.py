@@ -8,22 +8,23 @@ from scapy.layers.inet import TCP, IP
 from proto.http.request_service import decode_headers
 from collections import defaultdict
 
+# Global variables
 path = ''
 diff_path = None
-request_num = 0
-original_num = 0
 apk_name = ''
 testsuite: ET.Element = None
 
 # Dictionary to store TCP stream data
-tcp_streams = defaultdict(lambda: {"request": None, "response_headers": None, "response_body": b""})
+tcp_streams = defaultdict(lambda: {"request": None, "response_headers": None, "response_body": b"", "packets": []})
 
-def save_packet(request_data, response_data, packet):
+
+def save_packet(request_data, response_data, packets):
     """
     Save packet data to a JSON file, filtering fields based on a predefined schema.
 
     :param request_data: Dictionary containing request data
     :param response_data: Dictionary containing response data
+    :param packets: List of packets associated with the request/response
     """
     global path
     global diff_path
@@ -44,10 +45,12 @@ def save_packet(request_data, response_data, packet):
 
     print(f"Packet saved to: {file_path}")
 
-    file_path = os.path.join(path, 'http.pcap')
-    wrpcap(file_path, packet, append=True)
+    # Save packets to a pcap file
+    pcap_file_path = os.path.join(path, 'http.pcap')
+    wrpcap(pcap_file_path, packets, append=True)
 
-    print(f"Packet pcap updated to: {file_path}")
+    print(f"Packet pcap updated to: {pcap_file_path}")
+
 
 def packet_callback(pak: Packet):
     global tcp_streams
@@ -56,7 +59,17 @@ def packet_callback(pak: Packet):
         # Create a unique key for the TCP stream
         stream_key = (pak[IP].src, pak[TCP].sport, pak[IP].dst, pak[TCP].dport)
 
+        # Track packets for this stream
+        if not pak.haslayer(HTTPRequest) and not pak.haslayer(HTTPResponse):
+            if pak.haslayer(Raw):
+                print(f"Adding packet to stream: {stream_key}")
+                tcp_streams[stream_key]["response_body"] += pak[Raw].load
+                tcp_streams[stream_key]["packets"].append(pak)
+
         if pak.haslayer(HTTPRequest):
+            # Stream key is reversed for the response
+            stream_key = (pak[IP].dst, pak[TCP].dport, pak[IP].src, pak[TCP].sport)
+
             # Handle HTTP request
             http_layer = pak[HTTPRequest]
             request_data = {
@@ -89,27 +102,38 @@ def packet_callback(pak: Packet):
             }
             tcp_streams[stream_key]["response_headers"] = response_data
 
-        elif pak.haslayer(Raw) and stream_key in tcp_streams:
-            # Handle HTTP response payload (Raw layer only)
-            tcp_streams[stream_key]["response_body"] += pak[Raw].load
+            if pak.haslayer(Raw):
+                try:
+                    tcp_streams[stream_key]["response_body"] = pak[Raw].load
+                except UnicodeDecodeError:
+                    tcp_streams[stream_key]["response_body"] = b"Unable to decode payload"
 
-            # Check if the response is complete
+        # Check if the TCP stream is ending (FIN flag)
+        if pak[TCP].flags.F == 1:
+            if tcp_streams[stream_key]["request"] is None or tcp_streams[stream_key]["response_headers"] is None:
+                return
+            print(f"TCP stream ended: {stream_key}")
+
+            response_body = tcp_streams[stream_key]["response_body"]
+
+            response_body_decoded = response_body.decode(errors='ignore')
+            print(response_body_decoded)
             response_headers = tcp_streams[stream_key]["response_headers"]
-            if response_headers:
-                content_length = int(response_headers['headers'].get('Content-Length', 0))
-                if len(tcp_streams[stream_key]["response_body"]) >= content_length:
-                    # Response is complete
-                    response_data = tcp_streams[stream_key]["response_headers"]
-                    response_data['body'] = tcp_streams[stream_key]["response_body"].decode('utf-8', errors='replace')
-                    save_packet(tcp_streams[stream_key]["request"], response_data, pak)
-                    # Clear the stream data
-                    del tcp_streams[stream_key]
+            response_headers['Content-Length'] = len(response_body_decoded)
+            response_headers['body'] = response_body_decoded
+
+            save_packet(tcp_streams[stream_key]["request"], response_headers, tcp_streams[stream_key]["packets"])
+
+            # Clear the stream data
+            del tcp_streams[stream_key]
+
 
 def start_capture(port=8000):
     # Bind layers
     bind_layers(TCP, HTTP, sport=port)
     bind_layers(TCP, HTTP, dport=port)
     sniff(filter=f"tcp port {port}", prn=packet_callback, store=0)
+
 
 def run_http(app_name: str):
     resources_dir = os.path.join(os.getcwd(), 'resources/http')

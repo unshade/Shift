@@ -1,5 +1,6 @@
 import json
 import os
+import time
 import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
 from copy import deepcopy
@@ -32,7 +33,7 @@ class PacketMatcher:
         self.load_packets(packet_directory)
         self.request_number = 0
         self.testsuite = ET.Element('testsuite', name='HTTP Request Comparison', tests=str(len(self.packets)))
-        self.compare_path = os.path.join(os.getcwd(), 'resources/http', self.apk_name, 'diff', str(datetime.now()))
+        self.compare_path = os.path.join(os.getcwd(), 'resources/http', self.apk_name, 'diff', str(int(time.time())))
         os.makedirs(self.compare_path, exist_ok=True)
 
     def save_junit_report(self):
@@ -250,6 +251,7 @@ def create_app(packet_directory, app_name):
                               Raw(load=response.get('body', '').encode())
             wrpcap(pcap_file_path, response_packet, append=True)
             flask_response = make_response(response['body'])
+            flask_response.content_type = response['headers'].get('Content_Type', 'text/plain')
             flask_response.status_code = int(response['status_code'])
             for header, value in response['headers'].items():
                 if header == "Transfer_Encoding" or header == "Content_Encoding" or header == "Content_Length":
@@ -280,6 +282,7 @@ def create_app(packet_directory, app_name):
                                                   samesite=same_site, httponly=('HttpOnly' in cookie))
                 else:
                     flask_response.headers[header.replace('_', '-')] = value
+
             return flask_response
 
         # Add failure to JUnit report
