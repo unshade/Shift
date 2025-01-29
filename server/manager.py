@@ -7,6 +7,7 @@ import json
 from proto.http.app import run_http
 from proto.http.server import run_server
 
+
 def run_servers(app_name):
     """Launch service listeners for a specific app."""
     # Check the environment variable
@@ -27,24 +28,21 @@ def run_servers(app_name):
     # Wait for the processes to finish
     if http_process is not None:
         http_process.join()
-    
+
     if http_server_answer is not None:
         http_server_answer.join()
+
 
 def clear_all():
     """Clear every persistent datas"""
     shutil.rmtree('./resources')
     return "Cleared every datas"
 
-def update_hosts(packet_directory, host='127.0.0.1'):
-    packet_directory = "resources/http/"+packet_directory
 
-    pkt = os.listdir(packet_directory)
-    try:
-        pkt.remove("diff")
-    except ValueError:
-        pass
-    with open(packet_directory + '/' + pkt[0], 'r') as f:
+def update_hosts(packet_directory, host='127.0.0.1'):
+    packet_directory = "resources/http/" + packet_directory
+
+    with open(packet_directory + "/packets.json", 'r') as f:
         packets = json.load(f)
     domain = packets[0]['request']['headers']['Host']
     print(f"Setting up domain: {domain}")
@@ -60,6 +58,7 @@ def update_hosts(packet_directory, host='127.0.0.1'):
         f.write(f'{host} www.{domain}\n')
         if last is not None:
             f.write(last)
+
 
 if __name__ == '__main__':
     # create if not exist directory ./resources
