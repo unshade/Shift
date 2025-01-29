@@ -137,7 +137,7 @@ RUN chmod 760 ${WORK_PATH}/run-automation.sh
 # Appium
 COPY appium ${WORK_PATH}/appium 
 COPY server ${WORK_PATH}/server
-RUN chown -R 1300:1301 ${WORK_PATH}/appium ${WORK_PATH}/server ${WORK_PATH}/run.sh
+RUN chown -R 1300:1301 ${WORK_PATH}/appium ${WORK_PATH}/server ${WORK_PATH}/run.sh ${WORK_PATH}/run-automation.sh
 
 RUN python3 -m venv ${WORK_PATH}/venv 
 RUN ${WORK_PATH}/venv/bin/pip install -r ${WORK_PATH}/appium/requirements.txt && \
