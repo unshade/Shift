@@ -131,6 +131,9 @@ ENV WORK_PATH="/home/androidusr"
 COPY run.sh ${WORK_PATH}/
 RUN chmod 760 ${WORK_PATH}/run.sh
 
+COPY run-automation.sh ${WORK_PATH}/
+RUN chmod 760 ${WORK_PATH}/run-automation.sh
+
 # Appium
 COPY appium ${WORK_PATH}/appium 
 COPY server ${WORK_PATH}/server
