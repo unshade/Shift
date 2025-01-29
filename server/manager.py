@@ -39,7 +39,7 @@ def clear_all():
     return "Cleared every datas"
 
 
-def update_hosts(packet_directory, host='127.0.0.1'):
+def update_hosts(packet_directory, host='0.0.0.0'):
     packet_directory = "resources/http/" + packet_directory
 
     with open(packet_directory + "/packets.json", 'r') as f:
